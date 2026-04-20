@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\out\build\x64-Debug\CMakeFiles\2da77e6f7cce58f39f3a114969ded36e\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{4FAD3B36-444D-3B53-B089-8DF4DDBA316F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <cmath>

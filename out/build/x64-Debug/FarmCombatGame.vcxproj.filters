@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\core\AssetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\core\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\core\DayNight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\core\Game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\core\SaveSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\entities\NPC.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\entities\Player.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\CombatSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\FarmingSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\Inventory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\MissionSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\NPCManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\systems\ProgressionSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\ui\DialogueBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\ui\HUD.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\ui\ObjectiveUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\ui\SkillUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\src\world\TileMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\nikol\OneDrive\Radna površina\farm_combat_game\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{3C473F46-C8C8-339F-B3D1-E889AFEFD2A9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
