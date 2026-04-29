@@ -36,7 +36,10 @@ private:
     DialogueBox      m_dialogueBox;
     MissionSystem    m_missions;
 
-    // Misija se aktivira tek kad se dijalog u potpunosti završi
+    // Misija se aktivira tek kad se dijalog u potpunosti zavrsi
     int              m_pendingMissionId{ -1 };
     int              m_pendingMissionNpcIdx{ -1 };
+
+    // true kada dijalog sadrzi samo poruku "vec imas misiju" â€” sljedeci klik ga zatvara
+    bool             m_pendingCloseOnly{ false };
 };

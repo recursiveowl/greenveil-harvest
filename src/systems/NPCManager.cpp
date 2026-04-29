@@ -51,10 +51,30 @@ bool NPCManager::tryInteract(sf::Vector2f playerPos, float gameHour) {
 void NPCManager::advanceDialogue(int playerCrops, int playerKills) {
     if (!m_activeSpeaker || !m_dialogueBox.isVisible()) return;
 
+    // Ako je ovo samo poruka "vec imas misiju" — sljedeci klik je zatvara
+    if (m_pendingCloseOnly) {
+        closeDialogue();
+        return;
+    }
+
     const auto& line = m_activeSpeaker->getCurrentDialogue();
 
-    // Zapamti misiju — aktivirat će se tek kad se dijalog zatvori
+    // Ako je ova linija misija — provjeri odmah moze li je uzeti
     if (line.isMission && line.missionId >= 0) {
+        if (m_missions.hasActiveMission()) {
+            // Igrac vec ima aktivnu misiju — prikaži poruku i zatvori dijalog
+            m_dialogueBox.show(
+                m_activeSpeaker->getName(),
+                "Wait... You are already on another mission, complete it first!");
+            m_activeSpeaker->resetDialogue();
+            m_activeSpeaker = nullptr;
+            m_pendingMissionId = -1;
+            m_pendingMissionNpcIdx = -1;
+            m_pendingCloseOnly = true;
+            return;
+        }
+
+        // Zapamti misiju — aktivirat ce se tek kad se dijalog zatvori
         m_pendingMissionId = line.missionId;
         m_pendingMissionNpcIdx = -1;
         for (int i = 0; i < static_cast<int>(m_npcs.size()); ++i)
@@ -74,13 +94,20 @@ void NPCManager::advanceDialogue(int playerCrops, int playerKills) {
 }
 
 void NPCManager::closeDialogue() {
+    // Ako je samo poruka "vec imas misiju" — samo sakrij, ne aktiviraj nista
+    if (m_pendingCloseOnly) {
+        m_dialogueBox.hide();
+        m_pendingCloseOnly = false;
+        return;
+    }
+
     if (m_activeSpeaker) {
         m_activeSpeaker->resetDialogue();
         m_activeSpeaker = nullptr;
     }
     m_dialogueBox.hide();
 
-    // Aktiviraj misiju tek sada — dijalog je završen
+    // Aktiviraj misiju tek sada — dijalog je zavrsen
     if (m_pendingMissionId >= 0) {
         m_missions.activateMission(m_pendingMissionId, m_pendingMissionNpcIdx);
         m_pendingMissionId = -1;

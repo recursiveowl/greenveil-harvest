@@ -3,6 +3,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <memory>
 #include <vector>
 #include <unordered_map>

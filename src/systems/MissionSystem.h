@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "pch.h"
 
 enum class MissionStatus : uint8_t {
@@ -20,13 +20,13 @@ struct Mission {
     int           rewardCoins{0};
     int           rewardXP{0};
 
-    // Kills/crops zabilježeni u trenutku aktivacije questa
+    // Kills/crops zabiljeï¿½eni u trenutku aktivacije questa
     // (da ne bi prethodni kills racunali)
     int           killsAtActivation{0};
     int           cropsAtActivation{0};
 
-    // Explore quest — tracked area
-    sf::FloatRect exploredBounds{ sf::Vector2f{0.f, 0.f}, sf::Vector2f{0.f, 0.f} };
+    // Explore quest ï¿½ tracked area
+    sf::FloatRect exploredBounds = sf::FloatRect({ 0.f, 0.f }, { 0.f, 0.f });
     bool          exploreReady{false};
 };
 
@@ -34,21 +34,22 @@ class MissionSystem {
 public:
     MissionSystem();
 
-    void activateMission(int id, int npcId);
+    bool activateMission(int id, int npcId);
     void update(int totalCrops, int totalKills);
     void updateExplore(sf::Vector2f playerPos);
     bool tryTurnIn(int missionId);
     void registerKill();
 
-    const Mission*              getMission(int id)        const;
-    const Mission*              getActiveMission()        const;
+    const Mission* getMission(int id)        const;
+    const Mission* getActiveMission()        const;
     bool                        isActive(int id)          const;
     bool                        isReadyToTurnIn(int id)   const;
     int                         getKillCount()            const { return m_totalKills; }
     int                         getCurrentCrops()         const { return m_currentCrops; }
-    int                         getCoins()                const { return m_coins; }
+    int                         getLastRewardSilver()     const { return m_lastRewardSilver; }
+    bool                        hasActiveMission()        const;
 
-    // Za progress prikaz — kills/crops od aktivacije questa
+    // Za progress prikaz ï¿½ kills/crops od aktivacije questa
     int   getQuestKills()  const;
     int   getQuestCrops()  const;
     float getExploreProgress() const; // 0.0 - 1.0
@@ -57,13 +58,13 @@ public:
 
 private:
     std::vector<Mission> m_missions;
-    int                  m_totalKills{0};
-    int                  m_currentCrops{0};
-    int                  m_coins{0};
+    int                  m_totalKills{ 0 };
+    int                  m_currentCrops{ 0 };
+    int                  m_lastRewardSilver{ 0 };
 
     // Explore tracking
-    sf::Vector2f         m_exploreMin{1e9f,  1e9f};
-    sf::Vector2f         m_exploreMax{-1e9f, -1e9f};
-    bool                 m_exploreTracking{false};
-    sf::Vector2f         m_exploreStart{0.f, 0.f};
+    sf::Vector2f         m_exploreMin{ 1e9f,  1e9f };
+    sf::Vector2f         m_exploreMax{ -1e9f, -1e9f };
+    bool                 m_exploreTracking{ false };
+    sf::Vector2f         m_exploreStart{ 0.f, 0.f };
 };

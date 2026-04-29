@@ -1,25 +1,30 @@
-#include "systems/MissionSystem.h"
+﻿#include "systems/MissionSystem.h"
 #include <cmath>
 #include <algorithm>
 
 MissionSystem::MissionSystem() {
     auto make = [](int id, int npcId,
-                   std::string title, std::string objective, std::string desc,
-                   int crops, int kills, int coins, int xp) {
-        Mission m;
-        m.id           = id;
-        m.npcId        = npcId;
-        m.title        = std::move(title);
-        m.objective    = std::move(objective);
-        m.description  = std::move(desc);
-        m.requireCrops = crops;
-        m.requireKills = kills;
-        m.rewardCoins  = coins;
-        m.rewardXP     = xp;
-        m.status       = MissionStatus::Inactive;
-        return m;
-    };
+        std::string title, std::string objective, std::string desc,
+        int crops, int kills, int rewardSilver, int xp) {
+            Mission m;
+            m.id = id;
+            m.npcId = npcId;
+            m.title = std::move(title);
+            m.objective = std::move(objective);
+            m.description = std::move(desc);
+            m.requireCrops = crops;
+            m.requireKills = kills;
+            m.rewardCoins = rewardSilver; // rewardCoins sada drzi silver vrijednost
+            m.rewardXP = xp;
+            m.status = MissionStatus::Inactive;
+            return m;
+        };
 
+    // Nagrade u silver:
+    // Marko  (farmer)   — 3 crops  → 25s  + 50 XP
+    // Ana    (merchant) — 5 crops  → 80s  + 80 XP
+    // Boris  (guard)    — 3 kills  → 120s + 100 XP
+    // Elder  (explore)  — explore  → 200s + 150 XP
     m_missions.push_back(make(0, 0,
         "Hungry Farmer",
         "Collect 3 crops and return to Marko.",
@@ -27,34 +32,43 @@ MissionSystem::MissionSystem() {
     m_missions.push_back(make(1, 1,
         "Trade Deal",
         "Collect 5 crops and return to Ana.",
-        "Ana wants 5 crops for a trade.", 5, 0, 50, 80));
+        "Ana wants 5 crops for a trade.", 5, 0, 80, 80));
     m_missions.push_back(make(2, 2,
         "Goblin Threat",
         "Slay 3 goblins and return to Boris.",
-        "Boris wants 3 goblins slain.", 0, 3, 40, 100));
+        "Boris wants 3 goblins slain.", 0, 3, 120, 100));
     m_missions.push_back(make(3, 3,
         "Ancient Treasure",
         "Explore a 150x150 area far from the village.",
-        "Elder Vid wants you to explore.", 0, 0, 80, 150));
+        "Elder Vid wants you to explore.", 0, 0, 200, 150));
 }
 
-void MissionSystem::activateMission(int id, int npcId) {
+bool MissionSystem::hasActiveMission() const {
+    for (auto& m : m_missions)
+        if (m.status == MissionStatus::Active ||
+            m.status == MissionStatus::ReadyToTurn)
+            return true;
+    return false;
+}
+
+bool MissionSystem::activateMission(int id, int npcId) {
+    if (hasActiveMission()) return false;
+
     for (auto& m : m_missions) {
         if (m.id != id || m.status != MissionStatus::Inactive) continue;
         m.status = MissionStatus::Active;
-        m.npcId  = npcId;
-
-        // Zabilje�i kills/crops u trenutku aktivacije
+        m.npcId = npcId;
         m.killsAtActivation = m_totalKills;
         m.cropsAtActivation = m_currentCrops;
 
-        // Aktiviraj explore tracking za misiju 3
         if (id == 3) {
             m_exploreTracking = true;
-            m_exploreMin = {1e9f,  1e9f};
-            m_exploreMax = {-1e9f, -1e9f};
+            m_exploreMin = { 1e9f,  1e9f };
+            m_exploreMax = { -1e9f, -1e9f };
         }
+        return true;
     }
+    return false;
 }
 
 void MissionSystem::update(int totalCrops, int totalKills) {
@@ -67,29 +81,22 @@ void MissionSystem::update(int totalCrops, int totalKills) {
             if (m_exploreTracking) {
                 float w = m_exploreMax.x - m_exploreMin.x;
                 float h = m_exploreMax.y - m_exploreMin.y;
-                // 150 tile-ova * 32 px = 4800 px
                 if (w >= 4800.f && h >= 4800.f)
                     m.status = MissionStatus::ReadyToTurn;
             }
             continue;
         }
 
-        // Kills/crops od aktivacije questa
-        int killsSince  = m_totalKills   - m.killsAtActivation;
-        int cropsSince  = m_currentCrops - m.cropsAtActivation;
+        int killsSince = m_totalKills - m.killsAtActivation;
+        int cropsSince = m_currentCrops - m.cropsAtActivation;
 
-        bool cropsOk = (cropsSince  >= m.requireCrops);
-        bool killsOk = (killsSince  >= m.requireKills);
-
-        if (cropsOk && killsOk)
+        if (cropsSince >= m.requireCrops && killsSince >= m.requireKills)
             m.status = MissionStatus::ReadyToTurn;
     }
 }
 
 void MissionSystem::updateExplore(sf::Vector2f playerPos) {
     if (!m_exploreTracking) return;
-
-    // Pro�iri bounds na osnovu pozicije igraca
     m_exploreMin.x = std::min(m_exploreMin.x, playerPos.x);
     m_exploreMin.y = std::min(m_exploreMin.y, playerPos.y);
     m_exploreMax.x = std::max(m_exploreMax.x, playerPos.x);
@@ -100,33 +107,30 @@ float MissionSystem::getExploreProgress() const {
     if (!m_exploreTracking) return 0.f;
     float w = (m_exploreMax.x - m_exploreMin.x) / 4800.f;
     float h = (m_exploreMax.y - m_exploreMin.y) / 4800.f;
-    // Progres je minimum od width i height (mora biti i �irok i visok)
     return std::min(std::min(w, h), 1.f);
 }
 
 int MissionSystem::getQuestKills() const {
     for (auto& m : m_missions)
-        if (m.status == MissionStatus::Active ||
-            m.status == MissionStatus::ReadyToTurn)
-            if (m.requireKills > 0)
-                return std::max(0, m_totalKills - m.killsAtActivation);
+        if ((m.status == MissionStatus::Active ||
+            m.status == MissionStatus::ReadyToTurn) && m.requireKills > 0)
+            return std::max(0, m_totalKills - m.killsAtActivation);
     return 0;
 }
 
 int MissionSystem::getQuestCrops() const {
     for (auto& m : m_missions)
-        if (m.status == MissionStatus::Active ||
-            m.status == MissionStatus::ReadyToTurn)
-            if (m.requireCrops > 0)
-                return std::max(0, m_currentCrops - m.cropsAtActivation);
+        if ((m.status == MissionStatus::Active ||
+            m.status == MissionStatus::ReadyToTurn) && m.requireCrops > 0)
+            return std::max(0, m_currentCrops - m.cropsAtActivation);
     return 0;
 }
 
 bool MissionSystem::tryTurnIn(int missionId) {
     for (auto& m : m_missions) {
         if (m.id == missionId && m.status == MissionStatus::ReadyToTurn) {
-            m.status          = MissionStatus::Completed;
-            m_coins          += m.rewardCoins;
+            m.status = MissionStatus::Completed;
+            m_lastRewardSilver = m.rewardCoins; // spremi nagradu da je Game moze uzeti
             m_exploreTracking = false;
             return true;
         }
@@ -134,9 +138,7 @@ bool MissionSystem::tryTurnIn(int missionId) {
     return false;
 }
 
-void MissionSystem::registerKill() {
-    ++m_totalKills;
-}
+void MissionSystem::registerKill() { ++m_totalKills; }
 
 const Mission* MissionSystem::getMission(int id) const {
     for (auto& m : m_missions)
@@ -155,7 +157,7 @@ const Mission* MissionSystem::getActiveMission() const {
 bool MissionSystem::isActive(int id) const {
     for (auto& m : m_missions)
         if (m.id == id && (m.status == MissionStatus::Active ||
-                           m.status == MissionStatus::ReadyToTurn))
+            m.status == MissionStatus::ReadyToTurn))
             return true;
     return false;
 }
