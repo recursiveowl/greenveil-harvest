@@ -30,7 +30,6 @@ private:
     void processEvents();
     void update(float dt);
     void render();
-    void spawnInitialEnemies();
     void spawnVillage();
     void saveGame();
     void loadGame();

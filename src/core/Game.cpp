@@ -32,7 +32,6 @@ Game::Game()
     m_inventory.addItem(ItemType::FishingRod, 1);
     m_inventory.addItem(ItemType::Sword, 1);
 
-    spawnInitialEnemies();
     spawnVillage();
     loadGame();
 }
@@ -85,12 +84,6 @@ void Game::loadGame() {
         m_inventory.slots[i].type = static_cast<ItemType>(sd.itemTypes[i]);
         m_inventory.slots[i].count = sd.itemCounts[i];
     }
-}
-
-void Game::spawnInitialEnemies() {
-    sf::Vector2f center = m_player.getPosition();
-    m_combat.spawnWave(center, 4, EnemyType::Slime);
-    m_combat.spawnWave(center + sf::Vector2f{ 300.f, 0.f }, 2, EnemyType::Goblin);
 }
 
 void Game::spawnVillage() {
@@ -224,11 +217,6 @@ void Game::processEvents() {
                             m_wallet.addSilver(reward);
                     }
                 }
-                break;
-
-            case sf::Keyboard::Key::P:
-                m_combat.spawnBoss(m_player.getPosition() +
-                    sf::Vector2f{ 200.f, 0.f });
                 break;
 
             case sf::Keyboard::Key::B:
@@ -466,15 +454,6 @@ void Game::update(float dt) {
                 : EnemyType::Wolf;
             m_combat.spawnWave(m_player.getPosition(), 5, type);
         }
-    }
-
-    bool crossedMidnight = m_prevHour < 0.5f ||
-        (m_prevHour > 23.f && m_gameHour < 1.f) ||
-        (m_prevHour < 21.f && m_gameHour >= 21.f);
-    if (!m_bossSpawnedThisNight && crossedMidnight &&
-        m_dayNight.getTimeOfDay(m_gameHour) == TimeOfDay::Night) {
-        m_bossSpawnedThisNight = true;
-        m_combat.spawnBoss(m_player.getPosition() + sf::Vector2f{ 400.f, 0.f });
     }
 }
 
