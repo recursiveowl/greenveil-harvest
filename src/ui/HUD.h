@@ -9,5 +9,7 @@ public:
         float gameHour, const Wallet& wallet);
 
 private:
-    sf::Font m_font;
+    sf::Font    m_font;
+    sf::Texture m_goldTex;
+    sf::Texture m_silverTex;
 };

@@ -7,29 +7,50 @@
 // -------------------------------------------------------
 sf::Color Inventory::itemColor(ItemType t) {
     switch (t) {
-    case ItemType::Seed:  return sf::Color(200, 160, 60);
-    case ItemType::Crop:  return sf::Color(240, 210, 40);
-    case ItemType::Wood:  return sf::Color(160, 100, 45);
-    case ItemType::Stone: return sf::Color(150, 150, 160);
-    default:              return sf::Color(60, 60, 60);
+    case ItemType::Seed:       return sf::Color(200, 160, 60);
+    case ItemType::Crop:       return sf::Color(240, 210, 40);
+    case ItemType::Wood:       return sf::Color(160, 100, 45);
+    case ItemType::Stone:      return sf::Color(150, 150, 160);
+    case ItemType::FishingRod: return sf::Color(80, 160, 220);
+    case ItemType::Sword:      return sf::Color(180, 180, 220);
+    case ItemType::Carp:       return sf::Color(80, 160, 100);
+    case ItemType::Trout:      return sf::Color(60, 120, 200);
+    case ItemType::Salmon:     return sf::Color(220, 100, 80);
+    case ItemType::Catfish:    return sf::Color(100, 80, 140);
+    case ItemType::GoldenFish: return sf::Color(255, 200, 0);
+    default:                   return sf::Color(60, 60, 60);
     }
 }
 std::string Inventory::itemName(ItemType t) {
     switch (t) {
-    case ItemType::Seed:  return "Seed";
-    case ItemType::Crop:  return "Crop";
-    case ItemType::Wood:  return "Wood";
-    case ItemType::Stone: return "Stone";
-    default:              return "";
+    case ItemType::Seed:       return "Seed";
+    case ItemType::Crop:       return "Crop";
+    case ItemType::Wood:       return "Wood";
+    case ItemType::Stone:      return "Stone";
+    case ItemType::FishingRod: return "Fishing Rod";
+    case ItemType::Sword:      return "Sword";
+    case ItemType::Carp:       return "Carp";
+    case ItemType::Trout:      return "Trout";
+    case ItemType::Salmon:     return "Salmon";
+    case ItemType::Catfish:    return "Catfish";
+    case ItemType::GoldenFish: return "Golden Fish";
+    default:                   return "";
     }
 }
 std::string Inventory::itemDesc(ItemType t) {
     switch (t) {
-    case ItemType::Seed:  return "Plant in tilled soil.";
-    case ItemType::Crop:  return "Harvested produce.";
-    case ItemType::Wood:  return "Lumber for crafting.";
-    case ItemType::Stone: return "Construction material.";
-    default:              return "";
+    case ItemType::Seed:       return "Plant in tilled soil.";
+    case ItemType::Crop:       return "Harvested produce.";
+    case ItemType::Wood:       return "Lumber for crafting.";
+    case ItemType::Stone:      return "Construction material.";
+    case ItemType::FishingRod: return "Equip to fish near water.";
+    case ItemType::Sword:      return "Equip to attack enemies.";
+    case ItemType::Carp:       return "A common river fish.";
+    case ItemType::Trout:      return "A fast mountain fish.";
+    case ItemType::Salmon:     return "A valuable pink fish.";
+    case ItemType::Catfish:    return "A rare bottom dweller.";
+    case ItemType::GoldenFish: return "Legendary. Worth a fortune.";
+    default:                   return "";
     }
 }
 
@@ -106,6 +127,12 @@ int Inventory::countOf(ItemType type) const {
     for (auto& s : slots)
         if (s.type == type) total += s.count;
     return total;
+}
+
+ItemType Inventory::selectedItem() const {
+    if (selectedSlot >= 0 && selectedSlot < HOTBAR_SLOTS)
+        return slots[selectedSlot].type;
+    return ItemType::None;
 }
 
 // -------------------------------------------------------

@@ -28,6 +28,10 @@ Game::Game()
     m_wallet.gold = 2;
     m_wallet.silver = 50;
 
+    // Pocetni equipment
+    m_inventory.addItem(ItemType::FishingRod, 1);
+    m_inventory.addItem(ItemType::Sword, 1);
+
     spawnInitialEnemies();
     spawnVillage();
     loadGame();
@@ -137,19 +141,30 @@ void Game::processEvents() {
             case sf::Keyboard::Key::Escape:
                 if (m_npcManager.isDialogueOpen())
                     m_npcManager.closeDialogue();
+                else if (m_buildingUI.isOpen())
+                    m_buildingUI.close();
+                else if (m_buildingUI.hasSelected())
+                    m_buildingUI.clearSelected();
                 else
                     m_window.close();
                 break;
 
             case sf::Keyboard::Key::C:
+                if (m_marketUI.isOpen()) m_marketUI.close();
+                if (m_inventory.isBackpackOpen()) m_inventory.toggleBackpack();
                 m_skillUI.toggle();
                 break;
 
             case sf::Keyboard::Key::M:
-                if (!m_npcManager.isDialogueOpen() && !m_skillUI.isVisible()) {
-                    if (m_inventory.isBackpackOpen())
-                        m_inventory.toggleBackpack();
-                    m_marketUI.open(m_gameHour);
+                if (!m_npcManager.isDialogueOpen()) {
+                    if (m_marketUI.isOpen()) {
+                        m_marketUI.close();
+                    }
+                    else {
+                        if (m_skillUI.isVisible()) m_skillUI.toggle();
+                        if (m_inventory.isBackpackOpen()) m_inventory.toggleBackpack();
+                        m_marketUI.open(m_gameHour);
+                    }
                 }
                 break;
 
@@ -161,6 +176,11 @@ void Game::processEvents() {
                     m_npcManager.advanceDialogue(
                         m_inventory.countOf(ItemType::Crop),
                         m_npcManager.getMissions().getKillCount());
+                }
+                else if (m_inventory.selectedItem() == ItemType::FishingRod) {
+                    // Fishing action
+                    m_fishing.onActionPressed(m_player.getPosition(),
+                        m_player.getFacing());
                 }
                 else if (!m_npcManager.tryInteract(
                     m_player.getPosition(), m_gameHour)) {
@@ -188,7 +208,7 @@ void Game::processEvents() {
                 }
                 break;
 
-            case sf::Keyboard::Key::B:
+            case sf::Keyboard::Key::N:
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_npcManager.tryTurnIn(m_player.getPosition())) {
                         // Ukloni potrebne cropove iz inventara
@@ -211,6 +231,20 @@ void Game::processEvents() {
                     sf::Vector2f{ 200.f, 0.f });
                 break;
 
+            case sf::Keyboard::Key::B:
+                if (!m_npcManager.isDialogueOpen()) {
+                    if (m_buildingUI.isOpen()) {
+                        m_buildingUI.close();
+                    }
+                    else {
+                        if (m_marketUI.isOpen())  m_marketUI.close();
+                        if (m_skillUI.isVisible()) m_skillUI.toggle();
+                        if (m_inventory.isBackpackOpen()) m_inventory.toggleBackpack();
+                        m_buildingUI.toggle();
+                    }
+                }
+                break;
+
             case sf::Keyboard::Key::Tab:
                 if (!m_npcManager.isDialogueOpen() && !m_skillUI.isVisible())
                     m_inventory.toggleBackpack();
@@ -231,6 +265,11 @@ void Game::processEvents() {
                 static_cast<float>(click->position.x),
                 static_cast<float>(click->position.y) };
 
+            if (m_buildingUI.isOpen()) {
+                m_buildingUI.handleClick(mpos, m_building, m_inventory);
+                break;
+            }
+
             if (m_marketUI.isOpen()) {
                 m_marketUI.handleClick(mpos, m_market, m_inventory, m_wallet);
                 break;
@@ -244,10 +283,21 @@ void Game::processEvents() {
             }
 
             if (click->button == sf::Mouse::Button::Right) {
-                if (m_npcManager.isDialogueOpen())
+                if (m_npcManager.isDialogueOpen()) {
                     m_npcManager.advanceDialogue(
                         m_inventory.countOf(ItemType::Crop),
                         m_npcManager.getMissions().getKillCount());
+                }
+                else if (m_buildingUI.hasSelected()) {
+                    // Desni klik = otkazi build mode
+                    m_buildingUI.clearSelected();
+                }
+                else {
+                    // Desni klik = unisti zgradu
+                    sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
+                        sf::Mouse::getPosition(m_window), m_camera.getView());
+                    m_building.tryDestroy(mouseWorld, m_inventory);
+                }
             }
             if (click->button == sf::Mouse::Button::Left) {
                 // Inventory drag — hotbar uvijek, backpack ako je otvoren
@@ -259,16 +309,49 @@ void Game::processEvents() {
             }
             if (click->button == sf::Mouse::Button::Left &&
                 !m_npcManager.isDialogueOpen()) {
+                // Building placement
+                if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {
+                    sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
+                        sf::Mouse::getPosition(m_window), m_camera.getView());
+                    int tx = static_cast<int>(mouseWorld.x) / TileMap::TILE_SIZE;
+                    int ty = static_cast<int>(mouseWorld.y) / TileMap::TILE_SIZE;
+                    m_building.tryPlace(m_buildingUI.getSelected(),
+                        { tx, ty }, m_inventory, m_tileMap);
+                    // Provjeri je li ostalo materijala
+                    const auto& def = m_building.getDef(m_buildingUI.getSelected());
+                    if (m_inventory.countOf(def.material) < def.cost)
+                        m_buildingUI.clearSelected();
+                }
                 if (m_player.tryAttack()) {
                     sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
                         sf::Mouse::getPosition(m_window), m_camera.getView());
                     sf::Vector2f dir = mouseWorld - m_player.getPosition();
                     m_player.setFacing(dir);
+
+                    ItemType held = m_inventory.selectedItem();
+                    float dmg = m_progression.getAttackDamage();
+                    float range = Player::ATTACK_RANGE;
+
+                    if (held == ItemType::Sword) {
+                        // Puni damage i range — zuti hitbox ostaje
+                        dmg *= 1.0f;
+                        range *= 1.0f;
+                    }
+                    else if (held == ItemType::FishingRod) {
+                        // Malo duzi od ruke
+                        dmg *= 0.4f;
+                        range *= 0.65f;
+                    }
+                    else {
+                        // Ruke/ostalo — mali sivi hitbox
+                        dmg *= 0.3f;
+                        range *= 0.45f;
+                    }
+
                     bool killed = m_combat.playerAttack(
                         m_player.getPosition(),
                         m_player.getFacing(),
-                        Player::ATTACK_RANGE,
-                        m_progression.getAttackDamage());
+                        range, dmg);
                     if (killed)
                         m_npcManager.getMissions().registerKill();
                 }
@@ -309,8 +392,7 @@ void Game::processEvents() {
 
 void Game::update(float dt) {
     if (m_gameOver) return;
-    if (m_skillUI.isVisible()) return;
-    if (m_marketUI.isOpen()) return;
+    // SkillUI i MarketUI vise NE pauziraju igru
 
     m_prevHour = m_gameHour;
     bool  isNightTime = (m_gameHour >= 21.f || m_gameHour < 6.f);
@@ -325,11 +407,33 @@ void Game::update(float dt) {
     while (m_progression.levelUp()) {}
 
     if (!m_npcManager.isDialogueOpen())
-        m_player.update(dt, m_tileMap);
+        m_player.update(dt, m_tileMap, m_building);
+
+    // Sinhroniziraj weapon type sa selektovanim itemom
+    {
+        ItemType held = m_inventory.selectedItem();
+        WeaponType wt = WeaponType::Bare;
+        if (held == ItemType::Sword)      wt = WeaponType::Sword;
+        else if (held == ItemType::FishingRod) wt = WeaponType::Rod;
+        m_player.setWeaponType(wt);
+    }
 
     m_camera.follow(m_player.getPosition(), dt);
     m_farming.update(dt, m_tileMap);
+    m_building.update(dt);
     m_market.update(dt, m_gameHour);
+    m_marketUI.update(dt, m_gameHour, m_market);
+
+    // Fishing update
+    m_fishing.update(dt, m_player.getPosition(), m_tileMap);
+
+
+    // Poll uhvacene ribe
+    const FishDef* caught = m_fishing.pollCatch();
+    if (caught) {
+        m_inventory.addItem(caught->type, 1);
+        m_progression.addXP(static_cast<int>(caught->rarity * 80.f) + 10);
+    }
 
     float strengthMult = m_dayNight.getEnemyStrengthMult(m_gameHour);
     m_combat.setStrengthMult(strengthMult);
@@ -354,18 +458,14 @@ void Game::update(float dt) {
     if (m_enemySpawnTimer >= ENEMY_SPAWN_CD) {
         m_enemySpawnTimer = 0.f;
         bool isNight = m_dayNight.getTimeOfDay(m_gameHour) == TimeOfDay::Night;
-        int  count = isNight ? 5 : 3;
-        EnemyType type;
+        // Čudovišta se spawna SAMO noću
         if (isNight) {
             int r = std::rand() % 3;
-            type = r == 0 ? EnemyType::Goblin
+            EnemyType type = r == 0 ? EnemyType::Goblin
                 : r == 1 ? EnemyType::Skeleton
                 : EnemyType::Wolf;
+            m_combat.spawnWave(m_player.getPosition(), 5, type);
         }
-        else {
-            type = std::rand() % 2 == 0 ? EnemyType::Slime : EnemyType::Goblin;
-        }
-        m_combat.spawnWave(m_player.getPosition(), count, type);
     }
 
     bool crossedMidnight = m_prevHour < 0.5f ||
@@ -384,9 +484,29 @@ void Game::render() {
     m_camera.apply(m_window);
     m_tileMap.draw(m_window);
     m_farming.draw(m_window);
+    m_building.draw(m_window);
     m_combat.draw(m_window);
     m_npcManager.draw(m_window);
     m_player.draw(m_window);
+
+    // Building preview — world space
+    if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {
+        sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
+            sf::Mouse::getPosition(m_window), m_camera.getView());
+        int tx = static_cast<int>(mouseWorld.x) / TileMap::TILE_SIZE;
+        int ty = static_cast<int>(mouseWorld.y) / TileMap::TILE_SIZE;
+        bool valid = m_building.canPlace(m_buildingUI.getSelected(),
+            { tx, ty }, m_inventory, m_tileMap);
+        m_building.drawPreview(m_window, m_buildingUI.getSelected(),
+            { tx, ty }, valid);
+    }
+
+    // Bobber — world space
+    if (m_fishing.isActive())
+        m_fishingUI.drawBobber(m_window,
+            m_fishing.getBobber(),
+            m_fishing.getCastOrigin(),
+            m_fishing.getState());
 
     m_camera.applyUI(m_window);
     m_dayNight.draw(m_window, m_gameHour);
@@ -394,10 +514,16 @@ void Game::render() {
     m_inventory.draw(m_window);
     m_hud.draw(m_window, m_player.getHp(),
         m_player.getMaxHp(), m_gameHour, m_wallet);
+    // Fishing UI
+    bool canFish = m_fishing.canFish(m_player.getPosition(),
+        m_tileMap, m_inventory);
+    m_fishingUI.draw(m_window, m_fishing, canFish);
+
     m_npcManager.drawUI(m_window);
     m_objectiveUI.draw(m_window, m_npcManager.getMissions(),
         m_npcManager.canTurnIn(m_player.getPosition()));
     m_skillUI.draw(m_window, m_progression);
+    m_buildingUI.draw(m_window, m_building, m_inventory);
     m_marketUI.draw(m_window, m_market, m_inventory, m_wallet, m_gameHour);
 
     if (m_gameOver) {

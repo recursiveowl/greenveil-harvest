@@ -4,6 +4,10 @@
 
 HUD::HUD() {
     (void)m_font.openFromFile("assets/fonts/DejaVuSans.ttf");
+    (void)m_goldTex.loadFromFile("assets/textures/gold_coins.png");
+    (void)m_silverTex.loadFromFile("assets/textures/silver_coins.png");
+    m_goldTex.setSmooth(false);
+    m_silverTex.setSmooth(false);
 }
 
 void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
@@ -57,16 +61,46 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
     timeText.setPosition({ x, y + barH + 6.f });
     window.draw(timeText);
 
-    // Wallet
-    std::string walletStr = MarketSystem::formatWallet(wallet);
-    sf::Text walletText(m_font, walletStr, 13);
-    walletText.setFillColor(sf::Color(240, 200, 60));
-    walletText.setPosition({ x, y + barH + 26.f });
-    window.draw(walletText);
+    // Wallet — gold ikona + vrijednost
+    float wy = y + barH + 24.f;
 
-    // Hint
+    sf::Sprite goldIcon(m_goldTex);
+    goldIcon.setScale({ 1.5f, 1.5f });
+    goldIcon.setPosition({ x, wy });
+    window.draw(goldIcon);
+
+    sf::Text goldText(m_font, std::to_string(wallet.gold) + "g", 13);
+    goldText.setFillColor(sf::Color(240, 200, 60));
+    goldText.setPosition({ x + 26.f, wy + 1.f });
+    window.draw(goldText);
+
+    // Silver ikona + vrijednost
+    sf::Sprite silvIcon(m_silverTex);
+    silvIcon.setScale({ 1.5f, 1.5f });
+    silvIcon.setPosition({ x + 62.f, wy });
+    window.draw(silvIcon);
+
+    sf::Text silvText(m_font, std::to_string(wallet.silver) + "s", 13);
+    silvText.setFillColor(sf::Color(200, 200, 220));
+    silvText.setPosition({ x + 88.f, wy + 1.f });
+    window.draw(silvText);
+
+    // Emerald ako postoji
+    if (wallet.emerald > 0) {
+        sf::Text emText(m_font, std::to_string(wallet.emerald) + "em", 12);
+        emText.setFillColor(sf::Color(60, 220, 160));
+        emText.setPosition({ x + 130.f, wy + 1.f });
+        window.draw(emText);
+    }
+
+    // Hints
     sf::Text mHint(m_font, "[ M ] Market", 11);
     mHint.setFillColor(sf::Color(120, 120, 140));
     mHint.setPosition({ x, y + barH + 44.f });
     window.draw(mHint);
+
+    sf::Text eqHint(m_font, "Sword=LClick  Rod=F near water", 10);
+    eqHint.setFillColor(sf::Color(90, 90, 110));
+    eqHint.setPosition({ x, y + barH + 58.f });
+    window.draw(eqHint);
 }

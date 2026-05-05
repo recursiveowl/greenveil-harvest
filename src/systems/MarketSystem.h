@@ -54,6 +54,7 @@ public:
     MarketSystem();
 
     void update(float dt, float gameHour);
+    void forceRecalc(float gameHour); // poziva se svake sekunde iz MarketUI
 
     bool buyItem(ItemType item, int count, Wallet& wallet, class Inventory& inv);
     bool sellItem(ItemType item, int count, Wallet& wallet, class Inventory& inv);

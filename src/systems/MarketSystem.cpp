@@ -28,29 +28,60 @@ MarketSystem::MarketSystem()
             return e;
         };
 
-    // Sjeme — stabilna cijena, uvijek dostupno
+    // ---- Farming ----
     m_entries.push_back(make(
         ItemType::Seed, "Seeds", "Plant to grow crops.",
         8, 3, 0.10f, true, true,
         sf::Color(180, 140, 60)));
-
-    // Usjevi — visoka volatilnost, cijena raste ujutro i uvece
     m_entries.push_back(make(
-        ItemType::Crop, "Crops", "Harvested produce. Price varies by time of day.",
+        ItemType::Crop, "Crops", "Harvested produce.",
         12, 8, 0.35f, true, true,
         sf::Color(240, 200, 0)));
-
-    // Drvo — srednja volatilnost
     m_entries.push_back(make(
         ItemType::Wood, "Wood", "Lumber for building.",
         15, 9, 0.20f, true, true,
         sf::Color(139, 90, 43)));
-
-    // Kamen — niska volatilnost, stabilan
     m_entries.push_back(make(
         ItemType::Stone, "Stone", "Construction material.",
         18, 11, 0.12f, true, true,
         sf::Color(160, 160, 160)));
+
+    // ---- Equipment ----
+    m_entries.push_back(make(
+        ItemType::FishingRod, "Fishing Rod", "Required to fish near water.",
+        120, 40, 0.05f, true, true,
+        sf::Color(80, 160, 220)));
+    m_entries.push_back(make(
+        ItemType::Sword, "Sword", "Required to attack enemies.",
+        200, 80, 0.05f, true, true,
+        sf::Color(180, 180, 220)));
+
+    // ---- Fish (prodaja only) ----
+    m_entries.push_back(make(
+        ItemType::Carp, "Carp",
+        "A common river fish.",
+        8, 6, 0.08f, false, true,
+        sf::Color(80, 160, 100)));
+    m_entries.push_back(make(
+        ItemType::Trout, "Trout",
+        "A fast mountain fish.",
+        15, 12, 0.06f, false, true,
+        sf::Color(60, 120, 200)));
+    m_entries.push_back(make(
+        ItemType::Salmon, "Salmon",
+        "A valuable pink fish.",
+        28, 22, 0.05f, false, true,
+        sf::Color(220, 100, 80)));
+    m_entries.push_back(make(
+        ItemType::Catfish, "Catfish",
+        "A rare bottom dweller.",
+        40, 32, 0.04f, false, true,
+        sf::Color(100, 80, 140)));
+    m_entries.push_back(make(
+        ItemType::GoldenFish, "Golden Fish",
+        "Legendary. Worth a fortune.",
+        90, 75, 0.02f, false, true,
+        sf::Color(255, 200, 0)));
 }
 
 // -------------------------------------------------------
@@ -125,6 +156,12 @@ void MarketSystem::recordHistory(ItemType item, float gameHour) {
     // Cuvaj samo zadnjih 24 tocaka (jedna po satu igre otprilike)
     if (hist.size() > 24)
         hist.erase(hist.begin());
+}
+
+void MarketSystem::forceRecalc(float gameHour) {
+    recalcPrices(gameHour);
+    for (auto& e : m_entries)
+        recordHistory(e.item, gameHour);
 }
 
 void MarketSystem::update(float dt, float gameHour) {

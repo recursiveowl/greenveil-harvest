@@ -16,6 +16,10 @@
 #include "ui/ObjectiveUI.h"
 #include "ui/SkillUI.h"
 #include "ui/MarketUI.h"
+#include "systems/FishingSystem.h"
+#include "systems/BuildingSystem.h"
+#include "ui/FishingUI.h"
+#include "ui/BuildingUI.h"
 
 class Game {
 public:
@@ -54,6 +58,10 @@ private:
     ObjectiveUI         m_objectiveUI;
     SkillUI             m_skillUI;
     MarketUI            m_marketUI;
+    FishingSystem       m_fishing;
+    FishingUI           m_fishingUI;
+    BuildingSystem      m_building;
+    BuildingUI          m_buildingUI;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
