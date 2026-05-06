@@ -28,10 +28,6 @@ Game::Game()
     m_wallet.gold = 2;
     m_wallet.silver = 50;
 
-    // Pocetni equipment
-    m_inventory.addItem(ItemType::FishingRod, 1);
-    m_inventory.addItem(ItemType::Sword, 1);
-
     spawnVillage();
     loadGame();
 }
@@ -186,7 +182,9 @@ void Game::processEvents() {
 
             case sf::Keyboard::Key::E:
                 if (!m_npcManager.isDialogueOpen())
-                    m_farming.tryTill(m_player.getPosition(), m_tileMap);
+                    m_farming.tryTill(
+                    m_player.getPosition(), m_tileMap,
+                    m_inventory.selectedItem() == ItemType::Hoe);
                 break;
 
             case sf::Keyboard::Key::R:

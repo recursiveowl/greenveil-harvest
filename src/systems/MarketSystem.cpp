@@ -55,6 +55,10 @@ MarketSystem::MarketSystem()
         ItemType::Sword, "Sword", "Required to attack enemies.",
         200, 80, 0.05f, true, true,
         sf::Color(180, 180, 220)));
+    m_entries.push_back(make(
+        ItemType::Hoe, "Hoe", "Required to till soil.",
+        160, 60, 0.05f, true, true,
+        sf::Color(140, 150, 220)));
 
     // ---- Fish (prodaja only) ----
     m_entries.push_back(make(

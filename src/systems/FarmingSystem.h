@@ -28,7 +28,7 @@ struct FarmTile {
 class FarmingSystem {
 public:
     void update(float dt, const TileMap& map);
-    bool tryTill(sf::Vector2f playerPos, TileMap& map);
+    bool tryTill(sf::Vector2f playerPos, TileMap& map, bool hasHoe);
     bool tryPlant(sf::Vector2f playerPos, TileMap& map);
     bool tryHarvest(sf::Vector2f playerPos, TileMap& map, int& seedsOut);
     void draw(sf::RenderWindow& window);

@@ -38,7 +38,10 @@ void FarmingSystem::update(float dt, const TileMap& map) {
     }
 }
 
-bool FarmingSystem::tryTill(sf::Vector2f playerPos, TileMap& map) {
+bool FarmingSystem::tryTill(sf::Vector2f playerPos, TileMap& map, bool hasHoe) {
+
+    if (!hasHoe) return false;
+
     int tileX = static_cast<int>(playerPos.x) / TileMap::TILE_SIZE;
     int tileY = static_cast<int>(playerPos.y) / TileMap::TILE_SIZE;
 
