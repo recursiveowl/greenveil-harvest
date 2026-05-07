@@ -17,6 +17,10 @@ public:
     static constexpr float ATTACK_CD = 0.4f;
     static constexpr float IFRAME_DURATION = 0.6f;
     static constexpr float SWING_DURATION = 0.18f;
+    static constexpr float JUMP_DURATION = 0.45f;
+    static constexpr float JUMP_PEAK = 38.f;
+    static constexpr float GRAVITY = 1800.f;
+    static constexpr float JUMP_FORCE = 380.f;
 
     explicit Player(AssetManager& assets);
     void setPosition(sf::Vector2f pos);
@@ -26,6 +30,7 @@ public:
 
     void         setFacing(sf::Vector2f dir);
     void         setWeaponType(WeaponType w) { m_weapon = w; }
+    void         startJump() { if (!m_jumping) { std::uniform_real_distribution<float> var (-80.f, 80.f); m_jumping = true; m_jumpVelocity = JUMP_FORCE; m_jumpHeight = 0.f; } }
     FacingDir    getFacingDir()     const { return m_facing; }
     sf::Vector2f getFacing()        const;
     float        getSwingAngle()    const;
@@ -37,6 +42,7 @@ public:
     bool         isAlive()     const { return m_hp > 0.f; }
     bool         isAttacking() const { return m_swingTimer > 0.f; }
     bool         tryAttack();
+    bool         isJumping()   const { return m_jumping; }
 
 private:
     bool wouldCollide(sf::Vector2f pos, const TileMap& map) const;
@@ -50,6 +56,14 @@ private:
     float         m_swingProgress{ 0.f };
     float         m_hitFlash{ 0.f };
     float         m_iFrames{ 0.f };
+    float         m_jumpHeight{ 0.f };
+    float         m_jumpTimer{ 0.f };
+    float         m_jumpVelocity{ 0.f };
+    
+    bool          m_jumping{ false };
+
+    std::mt19937 m_rng{ std::random_device{}() };
+
     FacingDir     m_facing{ FacingDir::Down };
     WeaponType    m_weapon{ WeaponType::Bare };
 };

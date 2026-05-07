@@ -53,6 +53,17 @@ void Player::update(float dt, const TileMap& map,
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) vel.x -= SPEED;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) vel.x += SPEED;
 
+    if (m_jumping) {
+        float g = m_jumpVelocity > 0.f ? 1800.f : 2400.f;
+        m_jumpVelocity -= g * dt;
+        m_jumpHeight += m_jumpVelocity * dt;
+        if (m_jumpHeight <= 0.f) {
+            m_jumpHeight = 0.f;
+            m_jumpVelocity = 0.f;
+            m_jumping = false;
+        }
+    }
+
     if (vel.x != 0.f || vel.y != 0.f)
         setFacing(vel);
 
@@ -114,11 +125,15 @@ void Player::draw(sf::RenderWindow& window) {
     m_sprite.setColor(m_hitFlash > 0.f
         ? sf::Color(255, 100, 100)
         : sf::Color::White);
+
+    sf::Vector2f originalPos = m_sprite.getPosition();
+    m_sprite.setPosition({ originalPos.x, originalPos.y - m_jumpHeight });
     window.draw(m_sprite);
+    m_sprite.setPosition(originalPos);
 
     if (m_swingTimer <= 0.f) return;
 
-    sf::Vector2f pos = m_sprite.getPosition();
+    sf::Vector2f pos = sf::Vector2f{ originalPos.x, originalPos.y - m_jumpHeight };
     float        baseAng = getSwingAngle();
     float        sweepTotal = 200.f;
     float        startAng = baseAng - 100.f;

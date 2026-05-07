@@ -173,7 +173,8 @@ void Game::processEvents() {
                 }
                 else if (!m_npcManager.tryInteract(
                     m_player.getPosition(), m_gameHour)) {
-                    if (m_inventory.countOf(ItemType::Seed) > 0)
+                    if (m_inventory.selectedItem() == ItemType::Seed &&
+                        m_inventory.countOf(ItemType::Seed) > 0)
                         if (m_farming.tryPlant(
                             m_player.getPosition(), m_tileMap))
                             m_inventory.removeItem(ItemType::Seed);
@@ -181,7 +182,7 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::E:
-                if (!m_npcManager.isDialogueOpen())
+                if (!m_npcManager.isDialogueOpen())  
                     m_farming.tryTill(
                     m_player.getPosition(), m_tileMap,
                     m_inventory.selectedItem() == ItemType::Hoe);
@@ -196,6 +197,12 @@ void Game::processEvents() {
                         if (seeds + bonus > 0)
                             m_inventory.addItem(ItemType::Crop, seeds + bonus);
                     }
+                }
+                break;
+
+            case sf::Keyboard::Key::Space:
+                if (!m_player.isJumping()) {
+                    m_player.startJump();
                 }
                 break;
 

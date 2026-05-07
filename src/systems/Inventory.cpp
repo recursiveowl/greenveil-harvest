@@ -63,9 +63,8 @@ std::string Inventory::itemDesc(ItemType t) {
 Inventory::Inventory() {
     (void)m_font.openFromFile("assets/fonts/DejaVuSans.ttf");
     slots[0] = { ItemType::Seed, 5 };
-    slots[1] = { ItemType::FishingRod, 1 };
-    slots[2] = { ItemType::Sword, 1 };
-    slots[3] = { ItemType::Hoe, 1 };
+    slots[1] = { ItemType::Sword, 1 };
+    slots[2] = { ItemType::Hoe, 1 };
 }
 
 // -------------------------------------------------------
