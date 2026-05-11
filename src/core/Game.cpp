@@ -89,7 +89,7 @@ void Game::spawnVillage() {
     m_npcManager.spawnNPC(NPCType::Merchant, base + sf::Vector2f{ -120.f,  60.f }, "Ana");
     m_npcManager.spawnNPC(NPCType::Guard, base + sf::Vector2f{ 200.f, -90.f }, "Boris");
     m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
-    m_coinPickup.spawnCoins(base, 12, m_seed, m_tileMap);
+    m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
 }
 
 void Game::run() {

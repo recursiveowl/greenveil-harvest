@@ -18,11 +18,11 @@ void CoinPickup::spawnCoins(sf::Vector2f center, int count,
     unsigned seed, const TileMap& map) {
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> ang(0.f, 2.f * PI);
-    std::uniform_real_distribution<float> near(600.f, 1500.f);
-    std::uniform_real_distribution<float> far(1500.f, 4000.f);
+    std::uniform_real_distribution<float> near(800.f, 1500.f);
+    std::uniform_real_distribution<float> far(1500.f, 6000.f);
     std::uniform_real_distribution<float> roll(0.f, 1.f);
     
-    float r = roll(rng) < 0.2f ? near(rng) : far(rng);
+    float r = roll(rng) < 0.1f ? near(rng) : far(rng);
 
     int placed = 0, attempts = 0;
     while (placed < count && attempts < count * 20) {
