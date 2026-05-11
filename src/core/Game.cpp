@@ -13,6 +13,7 @@ Game::Game()
     , m_camera(WINDOW_W, WINDOW_H)
     , m_tileMap(m_assets)
     , m_player(m_assets)
+    , m_coinPickup(m_assets)
 {
     m_window.setVerticalSyncEnabled(true);
     std::srand(static_cast<unsigned>(std::time(nullptr)));
@@ -88,6 +89,7 @@ void Game::spawnVillage() {
     m_npcManager.spawnNPC(NPCType::Merchant, base + sf::Vector2f{ -120.f,  60.f }, "Ana");
     m_npcManager.spawnNPC(NPCType::Guard, base + sf::Vector2f{ 200.f, -90.f }, "Boris");
     m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
+    m_coinPickup.spawnCoins(base, 12, m_seed, m_tileMap);
 }
 
 void Game::run() {
@@ -420,6 +422,10 @@ void Game::update(float dt) {
     // Fishing update
     m_fishing.update(dt, m_player.getPosition(), m_tileMap);
 
+    m_coinPickup.update(m_player.getPosition());
+    int coins = m_coinPickup.pollCollected();
+    if (coins > 0) m_wallet.addSilver(coins);
+
 
     // Poll uhvacene ribe
     const FishDef* caught = m_fishing.pollCatch();
@@ -472,6 +478,7 @@ void Game::render() {
     m_combat.draw(m_window);
     m_npcManager.draw(m_window);
     m_player.draw(m_window);
+    m_coinPickup.draw(m_window);
 
     // Building preview — world space
     if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {

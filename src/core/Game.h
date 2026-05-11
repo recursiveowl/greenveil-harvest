@@ -20,6 +20,7 @@
 #include "systems/BuildingSystem.h"
 #include "ui/FishingUI.h"
 #include "ui/BuildingUI.h"
+#include "world/CoinPickup.h";
 
 class Game {
 public:
@@ -61,10 +62,12 @@ private:
     FishingUI           m_fishingUI;
     BuildingSystem      m_building;
     BuildingUI          m_buildingUI;
+    CoinPickup          m_coinPickup;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
     bool                m_bossSpawnedThisNight{ false };
+    unsigned            m_seed{ 0 };
 };
