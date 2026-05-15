@@ -2,6 +2,9 @@
 #include <ctime>
 #include <cstdlib>
 #include <cmath>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 static constexpr float FIXED_DT = 1.f / 60.f;
 static constexpr float ENEMY_SPAWN_CD = 15.f;
@@ -38,6 +41,16 @@ Game::Game()
 
     spawnVillage();
     loadGame();
+
+#ifdef _WIN32
+    HWND hwnd = m_window.getNativeHandle();
+    LONG style = GetWindowLong(hwnd, GWL_STYLE);
+    style &= ~WS_SIZEBOX;
+    style |= WS_MAXIMIZEBOX;
+    SetWindowLong(hwnd, GWL_STYLE, style);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+#endif
 }
 
 void Game::applyProgressionStats() {}
