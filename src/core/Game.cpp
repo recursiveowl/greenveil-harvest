@@ -9,12 +9,16 @@ static constexpr float GAME_HOUR_SPEED_DAY = 1.0f / 60.f;
 static constexpr float GAME_HOUR_SPEED_NIGHT = 1.8f / 60.f;
 
 Game::Game()
-    : m_window(sf::VideoMode({ WINDOW_W, WINDOW_H }), "Greenveil Harvest")
+    : m_window(sf::VideoMode({ WINDOW_W, WINDOW_H }), "Greenveil Harvest", sf::Style::Default)
     , m_camera(WINDOW_W, WINDOW_H)
     , m_tileMap(m_assets)
     , m_player(m_assets)
     , m_coinPickup(m_assets)
 {
+    UI::init(m_window.getSize().x, m_window.getSize().y);
+
+    UI::init(m_window.getSize().x, m_window.getSize().y);
+
     m_window.setVerticalSyncEnabled(true);
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
@@ -24,6 +28,9 @@ Game::Game()
         static_cast<float>(128 * TileMap::TILE_SIZE),
         static_cast<float>(128 * TileMap::TILE_SIZE)
         });
+
+    m_camera.follow(m_player.getPosition(), 1.f);
+    m_camera.snapTo(m_player.getPosition());
 
     // Pocetni novac
     m_wallet.gold = 2;
@@ -211,17 +218,27 @@ void Game::processEvents() {
             case sf::Keyboard::Key::N:
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_npcManager.tryTurnIn(m_player.getPosition())) {
-                        // Ukloni potrebne cropove iz inventara
                         for (auto& m : m_npcManager.getMissions().getAllMissions())
-                            if (m.status == MissionStatus::Completed &&
-                                m.requireCrops > 0) {
-                                m_inventory.removeItem(ItemType::Crop, m.requireCrops);
+                            if (m.status == MissionStatus::Completed && m.requireCrops > 0) {
+                                if (m.id == 3) {
+                                    // Oduzmi ribe
+                                    int toRemove = m.requireCrops;
+                                    for (auto fishType : { ItemType::Carp, ItemType::Trout,
+                                        ItemType::Salmon, ItemType::Catfish, ItemType::GoldenFish }) {
+                                        int has = m_inventory.countOf(fishType);
+                                        int remove = std::min(has, toRemove);
+                                        if (remove > 0) m_inventory.removeItem(fishType, remove);
+                                        toRemove -= remove;
+                                        if (toRemove <= 0) break;
+                                    }
+                                }
+                                else {
+                                    m_inventory.removeItem(ItemType::Crop, m.requireCrops);
+                                }
                                 break;
                             }
-                        // Isplati nagradu direktno u wallet
                         int reward = m_npcManager.getMissions().getLastRewardSilver();
-                        if (reward > 0)
-                            m_wallet.addSilver(reward);
+                        if (reward > 0) m_wallet.addSilver(reward);
                     }
                 }
                 break;
@@ -239,6 +256,11 @@ void Game::processEvents() {
                     }
                 }
                 break;
+
+                if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+                    UI::init(resized->size.x, resized->size.y);
+                    m_camera = Camera(resized->size.x, resized->size.y);
+                }
 
             case sf::Keyboard::Key::Tab:
                 if (!m_npcManager.isDialogueOpen() && !m_skillUI.isVisible())
@@ -399,6 +421,24 @@ void Game::update(float dt) {
         m_bossSpawnedThisNight = false;
     }
 
+    auto ws = m_window.getSize();
+    if (ws.x != m_windowW || ws.y != m_windowH) {
+        m_windowW = ws.x;
+        m_windowH = ws.y;
+        UI::init(ws.x, ws.y);
+        m_camera = Camera(ws.x, ws.y);
+        m_camera.snapTo(m_player.getPosition());
+    }
+
+
+    printf("Fish count: %d\n",
+        m_inventory.countOf(ItemType::Carp) +
+        m_inventory.countOf(ItemType::Trout) +
+        m_inventory.countOf(ItemType::Salmon) +
+        m_inventory.countOf(ItemType::Catfish) +
+        m_inventory.countOf(ItemType::GoldenFish));
+    printf("Quest crops: %d\n", m_npcManager.getMissions().getQuestCrops());
+
     while (m_progression.levelUp()) {}
 
     if (!m_npcManager.isDialogueOpen())
@@ -442,10 +482,27 @@ void Game::update(float dt) {
     if (xp > 0) m_progression.addXP(xp);
 
     m_npcManager.update(dt, m_gameHour, m_tileMap);
+    const Mission* active = m_npcManager.getMissions().getActiveMission();
+    int cropCount = (active && active->id == 3)
+        ? m_inventory.countOf(ItemType::Carp) +
+        m_inventory.countOf(ItemType::Trout) +
+        m_inventory.countOf(ItemType::Salmon) +
+        m_inventory.countOf(ItemType::Catfish) +
+        m_inventory.countOf(ItemType::GoldenFish)
+        : m_inventory.countOf(ItemType::Crop);
+
     m_npcManager.getMissions().update(
         m_inventory.countOf(ItemType::Crop),
-        m_npcManager.getMissions().getKillCount());
-    m_npcManager.getMissions().updateExplore(m_player.getPosition());
+        m_npcManager.getMissions().getKillCount(),
+        m_inventory.countOf(ItemType::Carp) +
+        m_inventory.countOf(ItemType::Trout) +
+        m_inventory.countOf(ItemType::Salmon) +
+        m_inventory.countOf(ItemType::Catfish) +
+        m_inventory.countOf(ItemType::GoldenFish));
+
+    printf("questCrops: %d, activation snapshot: %d\n",
+        m_npcManager.getMissions().getQuestCrops(),
+        m_npcManager.getMissions().getCurrentCrops());
 
     float dmg = m_combat.pollPlayerDamage();
     if (dmg > 0.f && !m_npcManager.isDialogueOpen())
@@ -501,6 +558,7 @@ void Game::render() {
 
     m_camera.applyUI(m_window);
     m_dayNight.draw(m_window, m_gameHour);
+
 
     m_inventory.draw(m_window);
     m_hud.draw(m_window, m_player.getHp(),

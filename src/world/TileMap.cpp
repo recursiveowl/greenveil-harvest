@@ -64,15 +64,15 @@ void TileMap::setTileType(int x, int y, TileType type) {
 }
 
 void TileMap::draw(sf::RenderWindow& window) {
-    sf::View     view = window.getView();
+    sf::View view = window.getView();
     sf::Vector2f center = view.getCenter();
     sf::Vector2f size = view.getSize();
 
     int padding = 1;
-    int startX = std::max(0, static_cast<int>((center.x - size.x * 0.5f) / TILE_SIZE) - padding);
-    int startY = std::max(0, static_cast<int>((center.y - size.y * 0.5f) / TILE_SIZE) - padding);
-    int endX = std::min(m_width, static_cast<int>((center.x + size.x * 0.5f) / TILE_SIZE) + padding + 1);
-    int endY = std::min(m_height, static_cast<int>((center.y + size.y * 0.5f) / TILE_SIZE) + padding + 1);
+    int startX = std::max(0, (int)((center.x - size.x * 0.5f) / TILE_SIZE) - 1);
+    int startY = std::max(0, (int)((center.y - size.y * 0.5f) / TILE_SIZE) - 1);
+    int endX = std::min(m_width, (int)((center.x + size.x * 0.5f) / TILE_SIZE) + 2);
+    int endY = std::min(m_height, (int)((center.y + size.y * 0.5f) / TILE_SIZE) + 2);
 
     for (auto& layer : m_layers) {
         layer.vertices.setPrimitiveType(sf::PrimitiveType::Triangles);

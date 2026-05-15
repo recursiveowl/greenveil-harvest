@@ -23,7 +23,7 @@ bool BuildingUI::handleClick(sf::Vector2f mouse,
     const Inventory& inv) {
     if (!m_open) return false;
 
-    sf::Vector2u ws = { 1280u, 720u };
+    sf::Vector2u ws = m_windowSize;
     float px = (ws.x - PANEL_W) * 0.5f;
     float py = (ws.y - PANEL_H) * 0.5f + 20.f;
 
@@ -53,6 +53,7 @@ bool BuildingUI::handleClick(sf::Vector2f mouse,
 void BuildingUI::draw(sf::RenderWindow& window,
     const BuildingSystem& bs,
     const Inventory& inv) {
+    m_windowSize = window.getSize();
     if (!m_open) return;
 
     sf::Vector2u ws = window.getSize();

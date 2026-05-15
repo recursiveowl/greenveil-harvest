@@ -17,6 +17,10 @@ void Camera::apply(sf::RenderWindow& window) {
     window.setView(m_view);
 }
 
+void Camera::snapTo(sf::Vector2f target) {
+    m_view.setCenter(target);
+}
+
 void Camera::applyUI(sf::RenderWindow& window) {
     window.setView(m_uiView);
 }

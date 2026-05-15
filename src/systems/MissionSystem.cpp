@@ -38,9 +38,9 @@ MissionSystem::MissionSystem() {
         "Slay 3 goblins and return to Boris.",
         "Boris wants 3 goblins slain.", 0, 3, 120, 100));
     m_missions.push_back(make(3, 3,
-        "Ancient Treasure",
-        "Explore a 150x150 area far from the village.",
-        "Elder Vid wants you to explore.", 0, 0, 200, 150));
+        "Elder's Appetite",
+        "Catch 3 fish and return to Elder Vid.",
+        "Elder Vid wants 3 fish.", 3, 0, 200, 150));
 }
 
 bool MissionSystem::hasActiveMission() const {
@@ -61,29 +61,25 @@ bool MissionSystem::activateMission(int id, int npcId) {
         m.killsAtActivation = m_totalKills;
         m.cropsAtActivation = m_currentCrops;
 
-        if (id == 3) {
-            m_exploreTracking = true;
-            m_exploreMin = { 1e9f,  1e9f };
-            m_exploreMax = { -1e9f, -1e9f };
-        }
+        if (m.id == 3)
+            m.cropsAtActivation = 0;
+        else
+            m.cropsAtActivation = m_currentCrops;
         return true;
     }
     return false;
 }
 
-void MissionSystem::update(int totalCrops, int totalKills) {
+void MissionSystem::update(int totalCrops, int totalKills, int totalFish) {
     m_currentCrops = totalCrops;
+    m_currentFish = totalFish;
 
     for (auto& m : m_missions) {
         if (m.status != MissionStatus::Active) continue;
 
         if (m.id == 3) {
-            if (m_exploreTracking) {
-                float w = m_exploreMax.x - m_exploreMin.x;
-                float h = m_exploreMax.y - m_exploreMin.y;
-                if (w >= 4800.f && h >= 4800.f)
-                    m.status = MissionStatus::ReadyToTurn;
-            }
+            if (m_currentFish >= m.requireCrops)
+                m.status = MissionStatus::ReadyToTurn;
             continue;
         }
 
@@ -107,7 +103,7 @@ float MissionSystem::getExploreProgress() const {
     if (!m_exploreTracking) return 0.f;
     float w = (m_exploreMax.x - m_exploreMin.x) / 4800.f;
     float h = (m_exploreMax.y - m_exploreMin.y) / 4800.f;
-    return std::min(std::min(w, h), 1.f);
+    return std::min(std::min(w, h) / 800.f, 1.f);
 }
 
 int MissionSystem::getQuestKills() const {
@@ -122,7 +118,9 @@ int MissionSystem::getQuestCrops() const {
     for (auto& m : m_missions)
         if ((m.status == MissionStatus::Active ||
             m.status == MissionStatus::ReadyToTurn) && m.requireCrops > 0)
-            return std::max(0, m_currentCrops - m.cropsAtActivation);
+            return (m.id == 3)
+            ? std::max(0, m_currentFish)
+            : std::max(0, m_currentCrops - m.cropsAtActivation);
     return 0;
 }
 

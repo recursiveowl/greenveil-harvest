@@ -10,9 +10,10 @@ public:
     void draw(sf::RenderWindow& window, const ProgressionSystem& prog);
 
     // Vrati koji skill je kliknut (-1 = nista)
-    int  handleClick(sf::Vector2f mousePos, const ProgressionSystem& prog);
+    int handleClick(sf::Vector2f mousePos, const ProgressionSystem& prog);
 
 private:
     sf::Font m_font;
+    sf::Vector2u m_windowSize{ 1280u, 720u };
     bool     m_visible{false};
 };

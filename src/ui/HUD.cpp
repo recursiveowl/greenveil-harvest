@@ -14,11 +14,10 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
     float gameHour, const Wallet& wallet) {
     sf::Vector2u ws = window.getSize();
 
-    // HP bar
-    float barW = 200.f;
-    float barH = 18.f;
-    float x = 16.f;
-    float y = 16.f;
+    float barW = UI::X(200.f);
+    float barH = UI::Y(18.f);
+    float x = UI::X(16.f);
+    float y = UI::Y(16.f);
     float ratio = std::max(0.f, hp / maxHp);
 
     sf::RectangleShape bg({ barW, barH });
@@ -39,12 +38,11 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
 
     sf::Text hpText(m_font,
         "HP: " + std::to_string(static_cast<int>(hp)) + " / " +
-        std::to_string(static_cast<int>(maxHp)), 13);
+        std::to_string(static_cast<int>(maxHp)), UI::S(13.f));
     hpText.setFillColor(sf::Color::White);
-    hpText.setPosition({ x + 4.f, y + 1.f });
+    hpText.setPosition({ x + UI::X(4.f), y + UI::Y(1.f) });
     window.draw(hpText);
 
-    // Sat
     int  hour = static_cast<int>(gameHour) % 24;
     int  minute = static_cast<int>((gameHour - std::floor(gameHour)) * 60.f);
     bool isAM = hour < 12;
@@ -56,51 +54,47 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
         (minute < 10 ? "0" : "") + std::to_string(minute) +
         (isAM ? " AM" : " PM");
 
-    sf::Text timeText(m_font, timeStr, 14);
+    sf::Text timeText(m_font, timeStr, UI::S(14.f));
     timeText.setFillColor(sf::Color(220, 220, 180));
-    timeText.setPosition({ x, y + barH + 6.f });
+    timeText.setPosition({ x, y + barH + UI::Y(6.f) });
     window.draw(timeText);
 
-    // Wallet — gold ikona + vrijednost
-    float wy = y + barH + 24.f;
+    float wy = y + barH + UI::Y(24.f);
 
     sf::Sprite goldIcon(m_goldTex);
-    goldIcon.setScale({ 1.5f, 1.5f });
+    goldIcon.setScale({ UI::S(1.5f), UI::S(1.5f) });
     goldIcon.setPosition({ x, wy });
     window.draw(goldIcon);
 
-    sf::Text goldText(m_font, std::to_string(wallet.gold) + "g", 13);
+    sf::Text goldText(m_font, std::to_string(wallet.gold) + "g", UI::S(13.f));
     goldText.setFillColor(sf::Color(240, 200, 60));
-    goldText.setPosition({ x + 26.f, wy + 1.f });
+    goldText.setPosition({ x + UI::X(26.f), wy + UI::Y(1.f) });
     window.draw(goldText);
 
-    // Silver ikona + vrijednost
     sf::Sprite silvIcon(m_silverTex);
-    silvIcon.setScale({ 1.5f, 1.5f });
-    silvIcon.setPosition({ x + 62.f, wy });
+    silvIcon.setScale({ UI::S(1.5f), UI::S(1.5f) });
+    silvIcon.setPosition({ x + UI::X(62.f), wy });
     window.draw(silvIcon);
 
-    sf::Text silvText(m_font, std::to_string(wallet.silver) + "s", 13);
+    sf::Text silvText(m_font, std::to_string(wallet.silver) + "s", UI::S(13.f));
     silvText.setFillColor(sf::Color(200, 200, 220));
-    silvText.setPosition({ x + 88.f, wy + 1.f });
+    silvText.setPosition({ x + UI::X(88.f), wy + UI::Y(1.f) });
     window.draw(silvText);
 
-    // Emerald ako postoji
     if (wallet.emerald > 0) {
-        sf::Text emText(m_font, std::to_string(wallet.emerald) + "em", 12);
+        sf::Text emText(m_font, std::to_string(wallet.emerald) + "em", UI::S(12.f));
         emText.setFillColor(sf::Color(60, 220, 160));
-        emText.setPosition({ x + 130.f, wy + 1.f });
+        emText.setPosition({ x + UI::X(130.f), wy + UI::Y(1.f) });
         window.draw(emText);
     }
 
-    // Hints
-    sf::Text mHint(m_font, "[ M ] Market", 11);
+    sf::Text mHint(m_font, "[ M ] Market", UI::S(11.f));
     mHint.setFillColor(sf::Color(120, 120, 140));
-    mHint.setPosition({ x, y + barH + 44.f });
+    mHint.setPosition({ x, y + barH + UI::Y(44.f) });
     window.draw(mHint);
 
-    sf::Text eqHint(m_font, "Sword=LClick  Rod=F near water", 10);
+    sf::Text eqHint(m_font, "Sword=LClick  Rod=F near water", UI::S(10.f));
     eqHint.setFillColor(sf::Color(90, 90, 110));
-    eqHint.setPosition({ x, y + barH + 58.f });
+    eqHint.setPosition({ x, y + barH + UI::Y(58.f) });
     window.draw(eqHint);
 }

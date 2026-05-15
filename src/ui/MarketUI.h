@@ -47,6 +47,7 @@ private:
     sf::Font    m_font;
     sf::Texture m_goldTex;
     sf::Texture m_silverTex;
+    sf::Vector2u m_windowSize{ 1280u, 720u };
     bool        m_open{ false };
 
     int   m_selectedIdx{ 0 };

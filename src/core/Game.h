@@ -21,6 +21,7 @@
 #include "ui/FishingUI.h"
 #include "ui/BuildingUI.h"
 #include "world/CoinPickup.h";
+#include "core/UIScale.h";
 
 class Game {
 public:
@@ -39,6 +40,9 @@ private:
     static constexpr unsigned WINDOW_W = 1280;
     static constexpr unsigned WINDOW_H = 720;
     static constexpr float    BOSS_SPAWN_HOUR = 0.f;
+
+    unsigned m_windowW{ WINDOW_W };
+    unsigned m_windowH{ WINDOW_H };
 
     sf::RenderWindow    m_window;
     sf::Clock           m_clock;

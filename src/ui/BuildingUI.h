@@ -32,6 +32,7 @@ private:
         float px, float py);
 
     sf::Font     m_font;
+    sf::Vector2u m_windowSize{ 1280u, 720u };
     bool         m_open{ false };
     BuildingType m_selected{ BuildingType::WoodWall };
     bool         m_hasSelected{ false };

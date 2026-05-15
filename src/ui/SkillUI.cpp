@@ -6,10 +6,15 @@ SkillUI::SkillUI() {
 
 int SkillUI::handleClick(sf::Vector2f mouse, const ProgressionSystem& prog) {
     if (!m_visible) return -1;
-    sf::Vector2f base{ 300.f, 150.f };
+    sf::Vector2f base{
+        (m_windowSize.x - 400.f) * 0.5f,  // centrirano kao u draw()
+        (m_windowSize.y - 460.f) * 0.5f
+    };
     const auto& skills = prog.getSkills();
     for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
-        sf::FloatRect btn(sf::Vector2f{ base.x + 200.f, base.y + 60.f + i * 70.f }, sf::Vector2f{ 120.f, 30.f });
+        sf::FloatRect btn(
+            sf::Vector2f{ base.x + 200.f, base.y + 60.f + i * 70.f },
+            sf::Vector2f{ 120.f, 30.f });
         if (btn.contains(mouse) && prog.getSkillPoints() > 0 &&
             skills[i].level < skills[i].maxLevel)
             return i;
@@ -18,9 +23,11 @@ int SkillUI::handleClick(sf::Vector2f mouse, const ProgressionSystem& prog) {
 }
 
 void SkillUI::draw(sf::RenderWindow& window, const ProgressionSystem& prog) {
+    m_windowSize = window.getSize();
     if (!m_visible) return;
 
-    sf::Vector2u ws = window.getSize();
+    m_windowSize = window.getSize();
+    sf::Vector2u ws = m_windowSize;
     float        pw = 400.f, ph = 460.f;
     float        px = (ws.x - pw) * 0.5f;
     float        py = (ws.y - ph) * 0.5f;

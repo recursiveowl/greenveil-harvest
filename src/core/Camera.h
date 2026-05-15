@@ -8,6 +8,7 @@ public:
     void follow(sf::Vector2f target, float dt);
     void apply(sf::RenderWindow& window);
     void applyUI(sf::RenderWindow& window);
+    void snapTo(sf::Vector2f target);
 
     sf::View getView() const { return m_view; }
 

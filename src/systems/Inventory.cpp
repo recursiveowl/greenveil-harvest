@@ -71,20 +71,22 @@ Inventory::Inventory() {
 //  Slot rect helpers
 // -------------------------------------------------------
 sf::FloatRect Inventory::hotbarSlotRect(int i) const {
-    float totalW = HOTBAR_SLOTS * (SLOT_SIZE + SLOT_PAD) - SLOT_PAD;
+    float ss = UI::S(SLOT_SIZE);
+    float sp = UI::S(SLOT_PAD);
+    float totalW = HOTBAR_SLOTS * (ss + sp) - sp;
     float startX = (m_ws.x - totalW) * 0.5f;
-    float startY = m_ws.y - SLOT_SIZE - 14.f;
-    return sf::FloatRect(
-        sf::Vector2f{ startX + i * (SLOT_SIZE + SLOT_PAD), startY },
-        sf::Vector2f{ SLOT_SIZE, SLOT_SIZE });
+    float startY = m_ws.y - ss - UI::Y(14.f);
+    return sf::FloatRect({ startX + i * (ss + sp), startY }, { ss, ss });
 }
 
 sf::FloatRect Inventory::backpackSlotRect(int i) const {
+    float ss = UI::S(SLOT_SIZE);
+    float sp = UI::S(SLOT_PAD);
     int col = i % BP_COLS;
     int row = i / BP_COLS;
-    float x = m_bpPx + SLOT_PAD + col * (SLOT_SIZE + SLOT_PAD);
-    float y = m_bpPy + HEADER_H + row * (SLOT_SIZE + SLOT_PAD);
-    return sf::FloatRect(sf::Vector2f{ x, y }, sf::Vector2f{ SLOT_SIZE, SLOT_SIZE });
+    float x = m_bpPx + sp + col * (ss + sp);
+    float y = m_bpPy + UI::S(HEADER_H) + row * (ss + sp);
+    return sf::FloatRect({ x, y }, { ss, ss });
 }
 
 int Inventory::hitTestHotbar(sf::Vector2f p) const {
@@ -275,7 +277,7 @@ void Inventory::drawHotbar(sf::RenderWindow& w) {
     float totalW = HOTBAR_SLOTS * (SLOT_SIZE + SLOT_PAD) - SLOT_PAD;
     float startX = (m_ws.x - totalW) * 0.5f - SLOT_PAD;
     float startY = m_ws.y - SLOT_SIZE - 14.f - SLOT_PAD;
-    float panW = totalW + SLOT_PAD * 2.f;
+    float panW = totalW + SLOT_PAD * 2.f; // m_ws
     float panH = SLOT_SIZE + SLOT_PAD * 2.f;
 
     // Panel pozadina
@@ -333,7 +335,7 @@ void Inventory::drawHotbar(sf::RenderWindow& w) {
                 w.draw(countT);
             }
         }
-
+         
         // Broj slota (1-5) ispod slota
         sf::Text numT(m_font, std::to_string(i + 1), 9);
         numT.setFillColor(sf::Color(80, 80, 110));

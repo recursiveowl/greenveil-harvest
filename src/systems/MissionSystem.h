@@ -35,7 +35,7 @@ public:
     MissionSystem();
 
     bool activateMission(int id, int npcId);
-    void update(int totalCrops, int totalKills);
+    void update(int totalCrops, int totalKills, int totalFish = 0);
     void updateExplore(sf::Vector2f playerPos);
     bool tryTurnIn(int missionId);
     void registerKill();
@@ -61,6 +61,7 @@ private:
     int                  m_totalKills{ 0 };
     int                  m_currentCrops{ 0 };
     int                  m_lastRewardSilver{ 0 };
+    int                  m_currentFish{ 0 };
 
     // Explore tracking
     sf::Vector2f         m_exploreMin{ 1e9f,  1e9f };

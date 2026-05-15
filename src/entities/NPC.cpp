@@ -65,9 +65,9 @@ void NPC::loadDialogue() {
             m_dialogues.push_back({"Slay 3 goblins and you will be rewarded.", true, 2});
             break;
         case NPCType::Elder:
-            m_dialogues.push_back({"Child, this village has a long history..."});
-            m_dialogues.push_back({"Legend speaks of ancient treasure buried to the north."});
-            m_dialogues.push_back({"Explore that area and bring me your findings.", true, 3});
+            m_dialogues.push_back({ "My old bones ache... I could use some fresh fish." });
+            m_dialogues.push_back({ "The pond nearby is full of them this time of year." });
+            m_dialogues.push_back({ "Bring me 3 fish and I shall reward you well.", true, 3 });
             break;
         default: break;
     }

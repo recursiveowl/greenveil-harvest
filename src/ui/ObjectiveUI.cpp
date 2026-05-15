@@ -74,8 +74,10 @@ void ObjectiveUI::draw(sf::RenderWindow& window,
     // Crops progress � od aktivacije questa
     if (active->requireCrops > 0) {
         int cur = std::min(missions.getQuestCrops(), active->requireCrops);
-        drawBar("Crops: " + std::to_string(cur) + " / " +
-            std::to_string(active->requireCrops),
+        std::string label = (active->id == 3)
+            ? "Fish: " + std::to_string(cur) + " / " + std::to_string(active->requireCrops)
+            : "Crops: " + std::to_string(cur) + " / " + std::to_string(active->requireCrops);
+        drawBar(label,
             static_cast<float>(cur) / active->requireCrops,
             sf::Color(80, 160, 220), sf::Color(180, 220, 180));
     }
@@ -87,15 +89,6 @@ void ObjectiveUI::draw(sf::RenderWindow& window,
             std::to_string(active->requireKills),
             static_cast<float>(cur) / active->requireKills,
             sf::Color(220, 80, 80), sf::Color(220, 180, 180));
-    }
-
-    // Explore progress
-    if (active->id == 3) {
-        float prog = missions.getExploreProgress();
-        int   pct = static_cast<int>(prog * 100.f);
-        drawBar("Area explored: " + std::to_string(pct) + "% (need 150x150 tiles)",
-            prog,
-            sf::Color(160, 120, 220), sf::Color(200, 200, 240));
     }
 
     // Nagrada
@@ -118,7 +111,7 @@ void ObjectiveUI::draw(sf::RenderWindow& window,
         hint.setOutlineColor(sf::Color(80, 220, 80, 220));
         window.draw(hint);
 
-        sf::Text hintText(m_font, "[ B ] - Turn in quest!", 13);
+        sf::Text hintText(m_font, "[ N ] - Turn in quest!", 13);
         hintText.setFillColor(sf::Color(80, 255, 80));
         hintText.setPosition({ boxX + 10.f, boxY + boxH + 6.f });
         window.draw(hintText);

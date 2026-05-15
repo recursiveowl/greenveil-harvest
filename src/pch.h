@@ -22,3 +22,6 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics/Rect.hpp>
+
+// Other
+#include "core/UIScale.h";
