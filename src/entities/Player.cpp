@@ -116,9 +116,20 @@ bool Player::tryAttack() {
 
 void Player::takeDamage(float dmg) {
     if (m_iFrames > 0.f) return;
-    m_hp = std::max(0.f, m_hp - dmg);
-    m_hitFlash = 0.2f;
-    m_iFrames = IFRAME_DURATION;
+    m_hp -= dmg;
+    if (m_hp <= 0.f) {
+        --m_lives;
+        if (m_lives > 0) {
+            m_hp = MAX_HP;
+            m_iFrames = RESPAWN_IFRAMES;
+        }
+        else {
+            m_hp = 0.f;
+        }
+    }
+    else {
+        m_iFrames = IFRAME_DURATION;
+    }
 }
 
 void Player::draw(sf::RenderWindow& window) {

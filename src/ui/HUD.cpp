@@ -1,17 +1,20 @@
 #include "ui/HUD.h"
 #include "systems/MarketSystem.h"
+#include "entities/Player.h"
 #include <cmath>
 
 HUD::HUD() {
     (void)m_font.openFromFile("assets/fonts/DejaVuSans.ttf");
     (void)m_goldTex.loadFromFile("assets/textures/gold_coins.png");
     (void)m_silverTex.loadFromFile("assets/textures/silver_coins.png");
+    (void)m_heartTex.loadFromFile("assets/textures/heart.png");
+    m_heartTex.setSmooth(false);
     m_goldTex.setSmooth(false);
     m_silverTex.setSmooth(false);
 }
 
 void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
-    float gameHour, const Wallet& wallet) {
+    float gameHour, const Wallet& wallet, int currentLives) {
     sf::Vector2u ws = window.getSize();
 
     float barW = UI::X(200.f);
@@ -97,4 +100,16 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
     eqHint.setFillColor(sf::Color(90, 90, 110));
     eqHint.setPosition({ x, y + barH + UI::Y(58.f) });
     window.draw(eqHint);
+
+    // Srca — puna slijeva, prazna zdesna
+    float hx = ws.x - Player::MAX_LIVES * 49.f - 16.f;
+    float hy = 16.f;
+    for (int i = 0; i < Player::MAX_LIVES; ++i) {
+        sf::Sprite heart(m_heartTex);
+        bool full = (i < currentLives);
+        heart.setTextureRect(sf::IntRect({ 0, full ? 0 : 16 }, { 15, 16 }));
+        heart.setScale({ 3.f, 3.f });
+        heart.setPosition({ hx + i * 49.f, hy });
+        window.draw(heart);
+    }
 }

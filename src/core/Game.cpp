@@ -588,7 +588,7 @@ void Game::render() {
     if (!m_anyUIOpen()) {
         m_inventory.draw(m_window);
         m_hud.draw(m_window, m_player.getHp(),
-            m_player.getMaxHp(), m_gameHour, m_wallet);
+            m_player.getMaxHp(), m_gameHour, m_wallet, m_player.getLives());
         bool canFish = m_fishing.canFish(m_player.getPosition(),
             m_tileMap, m_inventory);
         m_fishingUI.draw(m_window, m_fishing, canFish);

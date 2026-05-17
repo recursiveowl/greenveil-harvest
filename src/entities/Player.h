@@ -21,6 +21,9 @@ public:
     static constexpr float JUMP_PEAK = 38.f;
     static constexpr float GRAVITY = 1800.f;
     static constexpr float JUMP_FORCE = 380.f;
+    static constexpr float RESPAWN_IFRAMES = 2.5f;
+
+    static constexpr int MAX_LIVES = 5;
 
     explicit Player(AssetManager& assets);
     void setPosition(sf::Vector2f pos);
@@ -44,6 +47,8 @@ public:
     bool         tryAttack();
     bool         isJumping()   const { return m_jumping; }
 
+    int getLives() const { return m_lives; }
+
 private:
     bool wouldCollide(sf::Vector2f pos, const TileMap& map) const;
 
@@ -59,6 +64,8 @@ private:
     float         m_jumpHeight{ 0.f };
     float         m_jumpTimer{ 0.f };
     float         m_jumpVelocity{ 0.f };
+
+    int           m_lives{ MAX_LIVES };
     
     bool          m_jumping{ false };
 
