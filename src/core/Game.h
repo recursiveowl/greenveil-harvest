@@ -22,6 +22,8 @@
 #include "ui/BuildingUI.h"
 #include "world/CoinPickup.h";
 #include "core/UIScale.h";
+#include "world/InteractTile.h";
+#include "ui/InteractPrompt.h";
 
 class Game {
 public:
@@ -67,11 +69,18 @@ private:
     BuildingSystem      m_building;
     BuildingUI          m_buildingUI;
     CoinPickup          m_coinPickup;
+    InteractTileManager m_interactTiles;
+    InteractPrompt      m_interactPrompt;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
     bool                m_bossSpawnedThisNight{ false };
+    bool m_anyUIOpen() const {
+        return m_interactPrompt.isVisible() ||
+            m_npcManager.isDialogueOpen();
+    }
+
     unsigned            m_seed{ 0 };
 };

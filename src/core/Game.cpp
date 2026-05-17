@@ -110,6 +110,8 @@ void Game::spawnVillage() {
     m_npcManager.spawnNPC(NPCType::Guard, base + sf::Vector2f{ 200.f, -90.f }, "Boris");
     m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
     m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
+    m_interactTiles.add({ InteractTileType::Sign, {129, 128},
+    "Village Entrance", "Welcome to Greenveil.", false, false });
 }
 
 void Game::run() {
@@ -133,23 +135,20 @@ void Game::processEvents() {
             m_window.close();
 
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
-
             if (m_marketUI.isOpen()) {
                 if (k->code == sf::Keyboard::Key::M ||
                     k->code == sf::Keyboard::Key::Escape)
                     m_marketUI.close();
-                break;
             }
-
-            if (m_skillUI.isVisible()) {
+            else if (m_skillUI.isVisible()) {
                 if (k->code == sf::Keyboard::Key::C ||
                     k->code == sf::Keyboard::Key::Escape)
                     m_skillUI.toggle();
-                break;
             }
-
-            switch (k->code) {
+            else {
+                switch (k->code) {
             case sf::Keyboard::Key::Escape:
+                if (m_interactPrompt.isVisible()) { m_interactPrompt.hide(); break; }
                 if (m_npcManager.isDialogueOpen())
                     m_npcManager.closeDialogue();
                 else if (m_buildingUI.isOpen())
@@ -183,22 +182,28 @@ void Game::processEvents() {
             case sf::Keyboard::Key::F9: loadGame(); break;
 
             case sf::Keyboard::Key::F:
+                if (m_interactPrompt.isVisible()) {
+                    m_interactPrompt.hide(); break;
+                }
                 if (m_npcManager.isDialogueOpen()) {
                     m_npcManager.advanceDialogue(
                         m_inventory.countOf(ItemType::Crop),
                         m_npcManager.getMissions().getKillCount());
+                    break;
                 }
-                else if (m_inventory.selectedItem() == ItemType::FishingRod) {
-                    // Fishing action
-                    m_fishing.onActionPressed(m_player.getPosition(),
-                        m_player.getFacing());
+                {
+                    std::string t, b;
+                    if (m_interactTiles.tryInteract(m_player.getPosition(), t, b)) {
+                        m_interactPrompt.show(t, b); break;
+                    }
                 }
-                else if (!m_npcManager.tryInteract(
-                    m_player.getPosition(), m_gameHour)) {
-                    if (m_inventory.selectedItem() == ItemType::Seed &&
-                        m_inventory.countOf(ItemType::Seed) > 0)
-                        if (m_farming.tryPlant(
-                            m_player.getPosition(), m_tileMap))
+                if (m_inventory.selectedItem() == ItemType::FishingRod) {
+                    m_fishing.onActionPressed(m_player.getPosition(), m_player.getFacing());
+                    break;
+                }
+                if (!m_npcManager.tryInteract(m_player.getPosition(), m_gameHour)) {
+                    if (m_inventory.countOf(ItemType::Seed) > 0)
+                        if (m_farming.tryPlant(m_player.getPosition(), m_tileMap))
                             m_inventory.removeItem(ItemType::Seed);
                 }
                 break;
@@ -259,7 +264,7 @@ void Game::processEvents() {
             case sf::Keyboard::Key::B:
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_buildingUI.isOpen()) {
-                        m_buildingUI.close();
+                        m_buildingUI.close(); //Escape
                     }
                     else {
                         if (m_marketUI.isOpen())  m_marketUI.close();
@@ -289,6 +294,7 @@ void Game::processEvents() {
             default: break;
             }
         }
+    }
 
         if (const auto* click = event->getIf<sf::Event::MouseButtonPressed>()) {
             sf::Vector2f mpos = {
@@ -495,6 +501,10 @@ void Game::update(float dt) {
     if (xp > 0) m_progression.addXP(xp);
 
     m_npcManager.update(dt, m_gameHour, m_tileMap);
+    m_interactTiles.update(m_player.getPosition());
+    if (m_interactTiles.hasNearby())
+        sf::err() << "NEAREST SET\n";
+
     const Mission* active = m_npcManager.getMissions().getActiveMission();
     int cropCount = (active && active->id == 3)
         ? m_inventory.countOf(ItemType::Carp) +
@@ -536,7 +546,7 @@ void Game::update(float dt) {
             m_combat.spawnWave(m_player.getPosition(), 5, type);
         }
     }
-}
+} //
 
 void Game::render() {
     m_window.clear(sf::Color(20, 20, 20));
@@ -550,7 +560,6 @@ void Game::render() {
     m_player.draw(m_window);
     m_coinPickup.draw(m_window);
 
-    // Building preview — world space
     if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {
         sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
             sf::Mouse::getPosition(m_window), m_camera.getView());
@@ -562,36 +571,38 @@ void Game::render() {
             { tx, ty }, valid);
     }
 
-    // Bobber — world space
     if (m_fishing.isActive())
         m_fishingUI.drawBobber(m_window,
             m_fishing.getBobber(),
             m_fishing.getCastOrigin(),
             m_fishing.getState());
 
+    m_interactTiles.draw(m_window);
+
     m_camera.applyUI(m_window);
     m_dayNight.draw(m_window, m_gameHour);
 
-
-    m_inventory.draw(m_window);
-    m_hud.draw(m_window, m_player.getHp(),
-        m_player.getMaxHp(), m_gameHour, m_wallet);
-    // Fishing UI
-    bool canFish = m_fishing.canFish(m_player.getPosition(),
-        m_tileMap, m_inventory);
-    m_fishingUI.draw(m_window, m_fishing, canFish);
-
+    m_interactPrompt.draw(m_window);
     m_npcManager.drawUI(m_window);
-    m_objectiveUI.draw(m_window, m_npcManager.getMissions(),
-        m_npcManager.canTurnIn(m_player.getPosition()));
-    m_skillUI.draw(m_window, m_progression);
-    m_buildingUI.draw(m_window, m_building, m_inventory);
-    m_marketUI.draw(m_window, m_market, m_inventory, m_wallet, m_gameHour);
+
+    if (!m_anyUIOpen()) {
+        m_inventory.draw(m_window);
+        m_hud.draw(m_window, m_player.getHp(),
+            m_player.getMaxHp(), m_gameHour, m_wallet);
+        bool canFish = m_fishing.canFish(m_player.getPosition(),
+            m_tileMap, m_inventory);
+        m_fishingUI.draw(m_window, m_fishing, canFish);
+        m_objectiveUI.draw(m_window, m_npcManager.getMissions(),
+            m_npcManager.canTurnIn(m_player.getPosition()));
+        m_skillUI.draw(m_window, m_progression);
+        m_buildingUI.draw(m_window, m_building, m_inventory);
+        m_marketUI.draw(m_window, m_market, m_inventory, m_wallet, m_gameHour);
+    }
 
     if (m_gameOver) {
         sf::RectangleShape overlay({
-            static_cast<float>(WINDOW_W),
-            static_cast<float>(WINDOW_H) });
+            static_cast<float>(m_windowW),
+            static_cast<float>(m_windowH) });
         overlay.setFillColor(sf::Color(0, 0, 0, 160));
         m_window.draw(overlay);
     }
