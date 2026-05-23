@@ -27,7 +27,6 @@ bool FishingSystem::isNearWater(sf::Vector2f pos, const TileMap& map) const {
     return false;
 }
 
-// Provjeri je li TACNA pozicija u vodi (za bobber)
 bool FishingSystem::isPosOnWater(sf::Vector2f pos, const TileMap& map) const {
     int tx = static_cast<int>(pos.x) / TileMap::TILE_SIZE;
     int ty = static_cast<int>(pos.y) / TileMap::TILE_SIZE;
@@ -56,9 +55,6 @@ void FishingSystem::selectFish(sf::Vector2f playerPos, const TileMap& map) {
     m_biteTimer = 0.f;
 }
 
-// -------------------------------------------------------
-//  Action — F key
-// -------------------------------------------------------
 void FishingSystem::onActionPressed(sf::Vector2f playerPos,
     sf::Vector2f facingDir) {
     m_playerPos = playerPos;
@@ -68,16 +64,14 @@ void FishingSystem::onActionPressed(sf::Vector2f playerPos,
     switch (m_state) {
 
     case FishingState::Idle:
-        // Baci udicu — fizika luka
         m_state = FishingState::Casting;
         m_castTimer = CAST_DURATION;
         {
             sf::Vector2f target = playerPos + facingDir * 112.f;
             m_bobber.pos = playerPos + sf::Vector2f{ 0.f, -16.f };
             m_bobber.targetPos = target;
-            // Inicijalna brzina — parabolicki luk
             m_bobber.velocity = (target - m_bobber.pos) / CAST_DURATION;
-            m_bobber.velocity.y -= 160.f; // visina luka
+            m_bobber.velocity.y -= 160.f;
             m_bobber.inWater = false;
             m_bobber.wobbleAmp = 0.f;
             m_bobber.wobbleTimer = 0.f;
@@ -86,27 +80,24 @@ void FishingSystem::onActionPressed(sf::Vector2f playerPos,
         break;
 
     case FishingState::Biting:
-        // Reagovao ranije — pokreni minigame sa bonus catch progressom
         m_state = FishingState::Reeling;
         m_mini = {};
         m_mini.difficulty = m_currentFish->rarity;
-        m_mini.catchProgress = 0.12f; // early reaction bonus
+        m_mini.catchProgress = 0.f;
         m_mini.fishPullTimer = 1.2f;
         break;
 
     case FishingState::Reeling:
-        // Spam F — kontra povlacenja ribe
-        if (m_mini.fishPulling) {
-            // Svaki F press suprotstavlja pull za mali iznos
-            m_mini.catchProgress += 0.08f;
+        if (m_mini.fishPulling && m_mini.pullPauseTimer <= 0.f) {
+            float timeSinceLast = m_mini.lastSpamTime;
+            float spamBonus = timeSinceLast < 0.15f ? 0.22f
+                : timeSinceLast < 0.25f ? 0.16f
+                : 0.10f;
+            m_mini.catchProgress += spamBonus;
             m_mini.escapeProgress = std::max(0.f,
-                m_mini.escapeProgress - 0.06f);
-            // Wobble na bobberu — riba se trza
+                m_mini.escapeProgress - spamBonus * 0.6f);
+            m_mini.lastSpamTime = 0.f;
             m_bobber.wobbleAmp = 8.f;
-        }
-        else {
-            // Riba ne vuce — F povlaci normalno
-            m_mini.catchProgress += 0.04f;
         }
         break;
 
@@ -115,7 +106,6 @@ void FishingSystem::onActionPressed(sf::Vector2f playerPos,
     case FishingState::Waiting:
     case FishingState::Caught:
     case FishingState::Failed:
-        // Cancel / reset
         m_state = FishingState::Idle;
         m_currentFish = nullptr;
         m_bobber.inWater = false;
@@ -123,20 +113,14 @@ void FishingSystem::onActionPressed(sf::Vector2f playerPos,
     }
 }
 
-// -------------------------------------------------------
-//  Bobber fizika i animacija
-// -------------------------------------------------------
 void FishingSystem::updateBobber(float dt) {
     switch (m_state) {
 
     case FishingState::Casting: {
-        // Parabolicki let — gravitacija
         m_bobber.velocity.y += 420.f * dt;
         m_bobber.pos += m_bobber.velocity * dt;
-
         m_castTimer -= dt;
         if (m_castTimer <= 0.f) {
-            // Slece u vodu
             m_bobber.pos = m_bobber.targetPos;
             m_bobber.velocity = { 0.f, 0.f };
             m_bobber.inWater = true;
@@ -148,21 +132,17 @@ void FishingSystem::updateBobber(float dt) {
 
     case FishingState::Splashing:
         m_bobber.splashTimer -= dt;
-        // Bobber se smiruje — blagi bounce
         m_bobber.pos.y += std::sin(
             m_bobber.splashTimer * PI * 6.f) * 2.f * dt * 60.f;
-        // Tranzicija u Waiting se radi u update() koji ima map ptr
         break;
 
     case FishingState::Waiting:
-        // Blago bobanje u vodi
         m_bobber.wobbleTimer += dt * 1.5f;
         m_bobber.pos.y = m_bobber.targetPos.y +
             std::sin(m_bobber.wobbleTimer) * 2.5f;
         break;
 
     case FishingState::Biting:
-        // Brze trzanje — riba grize
         m_bobber.wobbleTimer += dt * 8.f;
         m_bobber.pos.y = m_bobber.targetPos.y +
             std::sin(m_bobber.wobbleTimer) * 5.f;
@@ -171,24 +151,20 @@ void FishingSystem::updateBobber(float dt) {
         break;
 
     case FishingState::Reeling: {
-        // Wobble ovisi o tome vuce li riba
         float targetAmp = m_mini.fishPulling ? 12.f : 3.f;
         m_bobber.wobbleAmp += (targetAmp - m_bobber.wobbleAmp) * dt * 4.f;
         m_bobber.wobbleTimer += dt * (m_mini.fishPulling ? 9.f : 4.f);
 
-        // Lijevo-desno chaotično kada riba vuce
         m_bobber.pos.x = m_bobber.targetPos.x +
             std::sin(m_bobber.wobbleTimer) * m_bobber.wobbleAmp +
             std::sin(m_bobber.wobbleTimer * 2.3f) * m_bobber.wobbleAmp * 0.4f;
-        // Gore-dolje
         m_bobber.pos.y = m_bobber.targetPos.y +
             std::sin(m_bobber.wobbleTimer * 1.7f) * m_bobber.wobbleAmp * 0.6f;
 
-        // Ako riba vuce — bobber se vuče prema "ribinom" smjeru
         if (m_mini.fishPulling) {
             float pullDir = std::sin(m_bobber.wobbleTimer * 0.5f);
             m_bobber.pos.x += pullDir * 6.f;
-            m_bobber.pos.y += 4.f; // tone malo
+            m_bobber.pos.y += 4.f;
         }
         break;
     }
@@ -197,28 +173,32 @@ void FishingSystem::updateBobber(float dt) {
     }
 }
 
-// -------------------------------------------------------
-//  Minigame logika
-// -------------------------------------------------------
 void FishingSystem::updateMinigame(float dt) {
     FishingMinigame& mg = m_mini;
 
-    // Riba povlaci sa 75% sanse svake 1-2 sekunde
     mg.fishPullTimer -= dt;
     if (mg.fishPullTimer <= 0.f) {
         std::uniform_real_distribution<float> pullRoll(0.f, 1.f);
         std::uniform_real_distribution<float> pullDur(0.6f, 1.4f);
-        mg.fishPulling = pullRoll(m_rng) < 0.75f;
+        bool willPull = pullRoll(m_rng) < 0.75f;
+        if (willPull && !mg.fishPulling)
+            mg.pullPauseTimer = 0.075f;
+        mg.fishPulling = willPull;
         mg.fishPullTimer = pullDur(m_rng);
     }
-
+    
     if (mg.fishPulling) {
-        // Riba vuce — escape raste brzo, catch pada
-        mg.escapeProgress += dt * (0.4f + mg.difficulty * 0.3f);
-        mg.catchProgress = std::max(0.f, mg.catchProgress - dt * 0.15f);
+        if (mg.pullPauseTimer > 0.f) {
+            mg.pullPauseTimer -= dt;
+            if (mg.pullPauseTimer < 0.f) mg.pullPauseTimer = 0.f;
+        }
+        else {
+            float phaseMult = mg.catchProgress < 0.10f ? 0.4f : 1.1f;
+            mg.escapeProgress += dt * (0.25f + mg.difficulty * 0.2f) * phaseMult;
+            mg.catchProgress = std::max(0.f, mg.catchProgress - dt * 0.2f);
+        }
     }
     else {
-        // Riba odmara — catch polako raste ako igrač ne radi ništa
         mg.escapeProgress = std::max(0.f, mg.escapeProgress - dt * 0.2f);
     }
 
@@ -237,47 +217,39 @@ void FishingSystem::updateMinigame(float dt) {
         m_resultTimer = 1.5f;
         m_bobber.wobbleAmp = 0.f;
     }
+
+    mg.lastSpamTime += dt;
 }
 
-// -------------------------------------------------------
-//  Update
-// -------------------------------------------------------
 void FishingSystem::update(float dt, sf::Vector2f playerPos,
     const TileMap& map) {
     m_playerPos = playerPos;
 
-    // Bobber animacija — svaki frame
     if (m_state != FishingState::Idle)
         updateBobber(dt);
 
     switch (m_state) {
 
     case FishingState::Splashing:
-        // Postavi bobber.inWater na osnovu stvarne tile pozicije
         m_bobberOnWater = isPosOnWater(m_bobber.pos, map);
         m_bobber.inWater = m_bobberOnWater;
-
         if (m_bobber.splashTimer <= 0.f) {
             if (m_bobberOnWater) {
-                // Normalno pecanje
                 m_pullMode = false;
                 m_state = FishingState::Waiting;
                 selectFish(playerPos, map);
             }
             else {
-                // Bobber na kopnu — pull mod
                 m_pullMode = true;
                 m_pullProgress = 0.f;
-                m_state = FishingState::Waiting; // reuse state za pull timer
-                m_waitTarget = 99.f; // ne aktivira bite automatski
+                m_state = FishingState::Waiting;
+                m_waitTarget = 99.f;
             }
         }
         break;
 
     case FishingState::Waiting:
         if (m_pullMode) {
-            // Pull mod — cekamo F input, nema pecanja
-            // pullProgress se resets svaki frame bez F
             m_pullProgress = std::max(0.f, m_pullProgress - dt * 0.8f);
             break;
         }
@@ -290,9 +262,7 @@ void FishingSystem::update(float dt, sf::Vector2f playerPos,
 
     case FishingState::Biting:
         m_biteTimer += dt;
-        // Auto-start reeling nakon 0.8s — igrac ne mora pritisnuti F
-        // (moze pritisnuti F ranije za bonus)
-        if (m_biteTimer >= 0.8f && m_state == FishingState::Biting) {
+        if (m_biteTimer >= 0.4f) {
             m_state = FishingState::Reeling;
             m_mini = {};
             m_mini.difficulty = m_currentFish->rarity;

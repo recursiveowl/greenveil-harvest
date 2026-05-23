@@ -47,6 +47,8 @@ struct FishingMinigame {
     float fishTarget{ 0.5f };
     float fishChangeCd{ 0.f };
     float catchProgress{ 0.f };
+    float pullPauseTimer{ 0.f };
+    float lastSpamTime{ 0.f };
     float escapeProgress{ 0.f };
     float difficulty{ 0.5f };
     float fishPullTimer{ 0.f };   // koliko dugo riba vuce

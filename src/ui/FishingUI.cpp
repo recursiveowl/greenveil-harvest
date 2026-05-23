@@ -14,7 +14,6 @@ void FishingUI::draw(sf::RenderWindow& window, const FishingSystem& fs,
     FishingState state = fs.getState();
     if (state == FishingState::Reeling)
         drawMinigame(window, fs.getMinigame());
-    drawStateMsg(window, fs);
 }
 
 void FishingUI::drawBobber(sf::RenderWindow& w,
@@ -194,66 +193,4 @@ void FishingUI::drawMinigame(sf::RenderWindow& w,
         flash.setFillColor(sf::Color(200, 0, 0, static_cast<uint8_t>(a)));
         w.draw(flash);
     }
-}
-
-void FishingUI::drawStateMsg(sf::RenderWindow& w, const FishingSystem& fs) {
-    sf::Vector2u ws = w.getSize();
-    FishingState state = fs.getState();
-
-    std::string msg;
-    sf::Color   col;
-
-    switch (state) {
-    case FishingState::Casting:
-        msg = "Casting...";
-        col = sf::Color(160, 190, 255);
-        break;
-    case FishingState::Splashing:
-        msg = "* splash *";
-        col = sf::Color(120, 190, 255);
-        break;
-
-    case FishingState::Biting: {
-        float remain = fs.getBiteWindow() - fs.getBiteTimer();
-        float t = std::sin(m_blinkTimer * 10.f) * 0.5f + 0.5f;
-        msg = "!! BITE !! Auto-reeling...";
-        col = sf::Color(static_cast<uint8_t>(200 + 55 * t), 60, 60);
-        break;
-    }
-    case FishingState::Caught:
-        msg = "Fish caught!";
-        col = sf::Color(80, 230, 80);
-        break;
-    case FishingState::Failed:
-        msg = "It got away...";
-        col = sf::Color(180, 100, 80);
-        break;
-    case FishingState::Waiting:
-        if (fs.isPullMode()) {
-            msg = "Not in water!  Press [F] to pull back";
-            col = sf::Color(220, 160, 60);
-        }
-        else {
-            int dots = static_cast<int>(fs.getWaitTimer() * 2.f) % 4;
-            msg = "Waiting";
-            for (int i = 0; i < dots; ++i) msg += ".";
-            col = sf::Color(130, 150, 200);
-        }
-        break;
-    default: return;
-    }
-
-    sf::Text t(m_font, msg, 15);
-    t.setFillColor(col);
-    auto tb = t.getLocalBounds();
-    float tx = (ws.x - tb.size.x) * 0.5f;
-    float ty = ws.y * 0.56f;
-
-    sf::RectangleShape bd({ tb.size.x + 18.f, tb.size.y + 10.f });
-    bd.setPosition({ tx - 9.f, ty - 4.f });
-    bd.setFillColor(sf::Color(8, 10, 20, 215));
-    bd.setOutlineThickness(1.f);
-    bd.setOutlineColor(sf::Color(50, 70, 120, 160));
-    w.draw(bd);
-    w.draw(t);
 }

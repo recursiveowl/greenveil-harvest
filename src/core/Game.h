@@ -83,4 +83,13 @@ private:
     }
 
     unsigned            m_seed{ 0 };
+
+    bool m_fKeyHeld{ false };
+    bool m_eKeyHeld{ false };
+    bool m_rKeyHeld{ false };
+    bool m_bKeyHeld{ false };
+    bool m_mKeyHeld{ false };
+    bool m_cKeyHeld{ false };
+    bool m_tabKeyHeld{ false };
+    bool m_spaceKeyHeld{ false };
 };

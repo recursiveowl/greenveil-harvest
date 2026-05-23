@@ -470,7 +470,7 @@ bool MarketUI::handleClick(sf::Vector2f mouse,
     Wallet& wallet) {
     if (!m_open) return false;
 
-    sf::Vector2u ws = m_windowSize;
+    sf::Vector2u ws = m_windowSize; //if (delta < 0)
     float px = (ws.x - PANEL_W) * 0.5f;
     float py = (ws.y - PANEL_H) * 0.5f;
 
@@ -543,13 +543,10 @@ bool MarketUI::handleClick(sf::Vector2f mouse,
     return false;
 }
 
-void MarketUI::handleScroll(float delta) {
-    if (!m_open) return;
-    // Scroll u listi
-    int maxOffset = 0; // ovo se updatuje u draw na osnovu entries.size()
+void MarketUI::handleScroll(float delta, const MarketSystem& market) {
+    int maxOffset = std::max(0, static_cast<int>(market.getEntries().size()) - VISIBLE_ROWS);
     if (delta < 0)
-        m_scrollOffset = std::min(m_scrollOffset + 1, 20);
+        m_scrollOffset = std::min(m_scrollOffset + 1, maxOffset);
     else
         m_scrollOffset = std::max(m_scrollOffset - 1, 0);
-    // Klamp na aktuelni max radi se u draw
 }

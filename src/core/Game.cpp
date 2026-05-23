@@ -135,6 +135,9 @@ void Game::processEvents() {
             m_window.close();
 
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
+
+            if (k->scancode == sf::Keyboard::Scancode::Unknown) break;
+
             if (m_marketUI.isOpen()) {
                 if (k->code == sf::Keyboard::Key::M ||
                     k->code == sf::Keyboard::Key::Escape)
@@ -160,12 +163,16 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::C:
+                if (m_cKeyHeld) break;
+                m_cKeyHeld = true;
                 if (m_marketUI.isOpen()) m_marketUI.close();
                 if (m_inventory.isBackpackOpen()) m_inventory.toggleBackpack();
                 m_skillUI.toggle();
                 break;
 
             case sf::Keyboard::Key::M:
+                if (m_mKeyHeld) break;
+                m_mKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_marketUI.isOpen()) {
                         m_marketUI.close();
@@ -182,6 +189,8 @@ void Game::processEvents() {
             case sf::Keyboard::Key::F9: loadGame(); break;
 
             case sf::Keyboard::Key::F:
+                if (m_fKeyHeld) break;
+                m_fKeyHeld = true;
                 if (m_interactPrompt.isVisible()) {
                     m_interactPrompt.hide(); break;
                 }
@@ -209,6 +218,8 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::E:
+                if (m_eKeyHeld) break;
+                m_eKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen())  
                     m_farming.tryTill(
                     m_player.getPosition(), m_tileMap,
@@ -216,6 +227,8 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::R:
+                if (m_rKeyHeld) break;
+                m_rKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen()) {
                     int seeds = 0;
                     if (m_farming.tryHarvest(
@@ -228,6 +241,8 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::Space:
+                if (m_spaceKeyHeld) break;
+                m_spaceKeyHeld = true;
                 if (!m_player.isJumping()) {
                     m_player.startJump();
                 }
@@ -262,6 +277,8 @@ void Game::processEvents() {
                 break;
 
             case sf::Keyboard::Key::B:
+                if (m_bKeyHeld) break;
+                m_bKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_buildingUI.isOpen()) {
                         m_buildingUI.close(); //Escape
@@ -281,6 +298,8 @@ void Game::processEvents() {
                 }
 
             case sf::Keyboard::Key::Tab:
+                if (m_tabKeyHeld) break;
+                m_tabKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen() && !m_skillUI.isVisible())
                     m_inventory.toggleBackpack();
                 break;
@@ -296,6 +315,21 @@ void Game::processEvents() {
         }
     }
 
+        
+        if (const auto* k = event->getIf<sf::Event::KeyReleased>()) {
+            switch (k->code) {
+            case sf::Keyboard::Key::F:     m_fKeyHeld = false; break;
+            case sf::Keyboard::Key::E:     m_eKeyHeld = false; break;
+            case sf::Keyboard::Key::R:     m_rKeyHeld = false; break;
+            case sf::Keyboard::Key::B:     m_bKeyHeld = false; break;
+            case sf::Keyboard::Key::M:     m_mKeyHeld = false; break;
+            case sf::Keyboard::Key::C:     m_cKeyHeld = false; break;
+            case sf::Keyboard::Key::Tab:   m_tabKeyHeld = false; break;
+            case sf::Keyboard::Key::Space: m_spaceKeyHeld = false; break;
+            default: break;
+            }
+        }
+        
         if (const auto* click = event->getIf<sf::Event::MouseButtonPressed>()) {
             sf::Vector2f mpos = {
                 static_cast<float>(click->position.x),
@@ -405,7 +439,7 @@ void Game::processEvents() {
 
         if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>()) {
             if (m_marketUI.isOpen()) {
-                m_marketUI.handleScroll(scroll->delta);
+                m_marketUI.handleScroll(scroll->delta, m_market);
             }
             else if (!m_npcManager.isDialogueOpen() && !m_skillUI.isVisible()) {
                 if (scroll->delta < 0)
@@ -423,6 +457,8 @@ void Game::processEvents() {
                 static_cast<float>(moved->position.y) };
             m_inventory.onMouseMoved(mposUI);
         }
+
+
     }
 }
 
@@ -448,15 +484,6 @@ void Game::update(float dt) {
         m_camera = Camera(ws.x, ws.y);
         m_camera.snapTo(m_player.getPosition());
     }
-
-
-    printf("Fish count: %d\n",
-        m_inventory.countOf(ItemType::Carp) +
-        m_inventory.countOf(ItemType::Trout) +
-        m_inventory.countOf(ItemType::Salmon) +
-        m_inventory.countOf(ItemType::Catfish) +
-        m_inventory.countOf(ItemType::GoldenFish));
-    printf("Quest crops: %d\n", m_npcManager.getMissions().getQuestCrops());
 
     while (m_progression.levelUp()) {}
 
@@ -502,8 +529,6 @@ void Game::update(float dt) {
 
     m_npcManager.update(dt, m_gameHour, m_tileMap);
     m_interactTiles.update(m_player.getPosition());
-    if (m_interactTiles.hasNearby())
-        sf::err() << "NEAREST SET\n";
 
     const Mission* active = m_npcManager.getMissions().getActiveMission();
     int cropCount = (active && active->id == 3)
@@ -522,10 +547,6 @@ void Game::update(float dt) {
         m_inventory.countOf(ItemType::Salmon) +
         m_inventory.countOf(ItemType::Catfish) +
         m_inventory.countOf(ItemType::GoldenFish));
-
-    printf("questCrops: %d, activation snapshot: %d\n",
-        m_npcManager.getMissions().getQuestCrops(),
-        m_npcManager.getMissions().getCurrentCrops());
 
     float dmg = m_combat.pollPlayerDamage();
     if (dmg > 0.f && !m_npcManager.isDialogueOpen())

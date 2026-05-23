@@ -18,7 +18,6 @@ public:
 
 private:
     void drawMinigame(sf::RenderWindow& w, const FishingMinigame& mg);
-    void drawStateMsg(sf::RenderWindow& w, const FishingSystem& fs);
 
     sf::Font m_font;
     float    m_blinkTimer{ 0.f };

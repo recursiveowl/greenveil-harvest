@@ -24,7 +24,7 @@ public:
         Inventory& inv,
         Wallet& wallet);
 
-    void handleScroll(float delta);
+    void handleScroll(float delta, const MarketSystem& market);
 
 private:
     void drawHeader(sf::RenderWindow& w, const Wallet& wallet,
