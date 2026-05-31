@@ -18,7 +18,7 @@ public:
     void closeDialogue();
 
     bool canTurnIn(sf::Vector2f playerPos) const;
-    bool tryTurnIn(sf::Vector2f playerPos);
+    bool tryTurnIn(sf::Vector2f playerPos, int playerFishCount = 0);
 
     bool           isDialogueOpen() const { return m_dialogueBox.isVisible(); }
     MissionSystem& getMissions() { return m_missions; }
@@ -42,4 +42,6 @@ private:
 
     // true kada dijalog sadrzi samo poruku "vec imas misiju" — sljedeci klik ga zatvara
     bool             m_pendingCloseOnly{ false };
+
+    bool m_turnInJustHappened{ false };
 };

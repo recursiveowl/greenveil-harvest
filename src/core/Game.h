@@ -20,10 +20,12 @@
 #include "systems/BuildingSystem.h"
 #include "ui/FishingUI.h"
 #include "ui/BuildingUI.h"
-#include "world/CoinPickup.h";
-#include "core/UIScale.h";
-#include "world/InteractTile.h";
-#include "ui/InteractPrompt.h";
+#include "world/CoinPickup.h"
+#include "core/UIScale.h"
+#include "world/InteractTile.h"
+#include "ui/InteractPrompt.h"
+#include "world/GrassDecor.h"
+#include "world/BushSystem.h"
 
 class Game {
 public:
@@ -71,24 +73,28 @@ private:
     CoinPickup          m_coinPickup;
     InteractTileManager m_interactTiles;
     InteractPrompt      m_interactPrompt;
+    GrassDecor          m_grassDecor;
+    BushSystem          m_bushes;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
     bool                m_bossSpawnedThisNight{ false };
+    unsigned            m_seed{ 0 };
+
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||
             m_npcManager.isDialogueOpen();
     }
 
-    unsigned            m_seed{ 0 };
 
     bool m_fKeyHeld{ false };
     bool m_eKeyHeld{ false };
     bool m_rKeyHeld{ false };
     bool m_bKeyHeld{ false };
     bool m_mKeyHeld{ false };
+    bool m_nKeyHeld{ false };
     bool m_cKeyHeld{ false };
     bool m_tabKeyHeld{ false };
     bool m_spaceKeyHeld{ false };

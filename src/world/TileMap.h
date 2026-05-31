@@ -2,13 +2,7 @@
 #include "pch.h"
 #include "core/AssetManager.h"
 
-enum class TileType : uint8_t {
-    Grass = 0,
-    Dirt,
-    Water,
-    Stone,
-    COUNT
-};
+enum class TileType : uint8_t { Grass = 0, Dirt, Water, Sand, COUNT };
 
 struct Tile {
     TileType type    = TileType::Grass;
@@ -24,6 +18,7 @@ public:
     void generate(int width, int height, unsigned seed = 42);
     void draw(sf::RenderWindow& window);
     void setTileType(int x, int y, TileType type);
+    void forceWaterRegion(int centerX, int centerY, int radius);
 
     const Tile& getTile(int x, int y) const;
     Tile&       getTileMut(int x, int y);

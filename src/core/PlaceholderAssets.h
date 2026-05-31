@@ -64,4 +64,8 @@ namespace PlaceholderAssets {
     inline sf::Texture makeStone() {
         return makeTile(sf::Color(128, 128, 128), sf::Color(80, 80, 80));
     }
+
+    inline sf::Texture makeSand() {
+        return makeTile(sf::Color(194, 178, 128), sf::Color(160, 140, 90));
+    }
 }

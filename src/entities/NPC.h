@@ -74,7 +74,7 @@ public:
     // ================= MISSIONS =================
 
     int  getActiveMission() const { return m_activeMission; }
-    void completeMission(int id);
+    void completeMission(int id, bool alreadyHasFish = false);
 
     // ================= GETTERS =================
 

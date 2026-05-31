@@ -40,6 +40,10 @@ Game::Game()
     m_wallet.silver = 50;
 
     spawnVillage();
+
+    m_bushes.generate(m_tileMap, seed);
+    m_grassDecor.generate(m_tileMap, seed);
+
     loadGame();
 
 #ifdef _WIN32
@@ -105,13 +109,22 @@ void Game::loadGame() {
 
 void Game::spawnVillage() {
     sf::Vector2f base = m_player.getPosition();
+
     m_npcManager.spawnNPC(NPCType::Farmer, base + sf::Vector2f{ 160.f,  80.f }, "Marko");
     m_npcManager.spawnNPC(NPCType::Merchant, base + sf::Vector2f{ -120.f,  60.f }, "Ana");
     m_npcManager.spawnNPC(NPCType::Guard, base + sf::Vector2f{ 200.f, -90.f }, "Boris");
     m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
     m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
     m_interactTiles.add({ InteractTileType::Sign, {129, 128},
-    "Village Entrance", "Welcome to Greenveil.", false, false });
+        "Village Entrance", "Welcome to Greenveil.", false, false });
+
+    int baseTX = static_cast<int>(base.x) / TileMap::TILE_SIZE;
+    int baseTY = static_cast<int>(base.y) / TileMap::TILE_SIZE;
+    float angle = static_cast<float>(std::rand() % 360) * 3.14159f / 180.f;
+    int dist = 50 + std::rand() % 26;
+    int lakeX = baseTX + static_cast<int>(std::cos(angle) * dist);
+    int lakeY = baseTY + static_cast<int>(std::sin(angle) * dist);
+    m_tileMap.forceWaterRegion(lakeX, lakeY, 4 + std::rand() % 5);
 }
 
 void Game::run() {
@@ -137,6 +150,43 @@ void Game::processEvents() {
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
 
             if (k->scancode == sf::Keyboard::Scancode::Unknown) break;
+
+            if (k->code == sf::Keyboard::Key::N && !m_nKeyHeld) {
+                m_nKeyHeld = true;
+                printf("N PRESSED, active=%p\n", m_npcManager.getMissions().getActiveMission());
+                const Mission* active = m_npcManager.getMissions().getActiveMission();
+                if (active && m_npcManager.canTurnIn(m_player.getPosition())) {
+                    int reward = active->rewardCoins;
+                    int missionId = active->id;
+                    int requireCrops = active->requireCrops;
+                    int fishCount = m_inventory.countOf(ItemType::Carp) +
+                        m_inventory.countOf(ItemType::Trout) +
+                        m_inventory.countOf(ItemType::Salmon) +
+                        m_inventory.countOf(ItemType::Catfish) +
+                        m_inventory.countOf(ItemType::GoldenFish);
+                    if (m_npcManager.tryTurnIn(m_player.getPosition(), fishCount)) {
+                        printf("TURNIN SUCCESS\n");
+                        m_fKeyHeld = true;
+                        if (requireCrops > 0) {
+                            if (missionId == 3) {
+                                int toRemove = requireCrops;
+                                for (auto fishType : { ItemType::Carp, ItemType::Trout,
+                                    ItemType::Salmon, ItemType::Catfish, ItemType::GoldenFish }) {
+                                    int has = m_inventory.countOf(fishType);
+                                    int remove = std::min(has, toRemove);
+                                    if (remove > 0) m_inventory.removeItem(fishType, remove);
+                                    toRemove -= remove;
+                                    if (toRemove <= 0) break;
+                                }
+                            }
+                            else {
+                                m_inventory.removeItem(ItemType::Crop, requireCrops);
+                            }
+                        }
+                        m_wallet.addSilver(reward);
+                    }
+                }
+            }
 
             if (m_marketUI.isOpen()) {
                 if (k->code == sf::Keyboard::Key::M ||
@@ -248,34 +298,6 @@ void Game::processEvents() {
                 }
                 break;
 
-            case sf::Keyboard::Key::N:
-                if (!m_npcManager.isDialogueOpen()) {
-                    if (m_npcManager.tryTurnIn(m_player.getPosition())) {
-                        for (auto& m : m_npcManager.getMissions().getAllMissions())
-                            if (m.status == MissionStatus::Completed && m.requireCrops > 0) {
-                                if (m.id == 3) {
-                                    // Oduzmi ribe
-                                    int toRemove = m.requireCrops;
-                                    for (auto fishType : { ItemType::Carp, ItemType::Trout,
-                                        ItemType::Salmon, ItemType::Catfish, ItemType::GoldenFish }) {
-                                        int has = m_inventory.countOf(fishType);
-                                        int remove = std::min(has, toRemove);
-                                        if (remove > 0) m_inventory.removeItem(fishType, remove);
-                                        toRemove -= remove;
-                                        if (toRemove <= 0) break;
-                                    }
-                                }
-                                else {
-                                    m_inventory.removeItem(ItemType::Crop, m.requireCrops);
-                                }
-                                break;
-                            }
-                        int reward = m_npcManager.getMissions().getLastRewardSilver();
-                        if (reward > 0) m_wallet.addSilver(reward);
-                    }
-                }
-                break;
-
             case sf::Keyboard::Key::B:
                 if (m_bKeyHeld) break;
                 m_bKeyHeld = true;
@@ -326,6 +348,7 @@ void Game::processEvents() {
             case sf::Keyboard::Key::C:     m_cKeyHeld = false; break;
             case sf::Keyboard::Key::Tab:   m_tabKeyHeld = false; break;
             case sf::Keyboard::Key::Space: m_spaceKeyHeld = false; break;
+            case sf::Keyboard::Key::N: m_nKeyHeld = false; break;
             default: break;
             }
         }
@@ -488,7 +511,7 @@ void Game::update(float dt) {
     while (m_progression.levelUp()) {}
 
     if (!m_npcManager.isDialogueOpen())
-        m_player.update(dt, m_tileMap, m_building);
+        m_player.update(dt, m_tileMap, m_building, m_bushes);
 
     // Sinhroniziraj weapon type sa selektovanim itemom
     {
@@ -574,7 +597,9 @@ void Game::render() {
 
     m_camera.apply(m_window);
     m_tileMap.draw(m_window);
+    m_grassDecor.draw(m_window);
     m_farming.draw(m_window);
+    m_bushes.draw(m_window);
     m_building.draw(m_window);
     m_combat.draw(m_window);
     m_npcManager.draw(m_window);

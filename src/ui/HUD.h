@@ -13,4 +13,5 @@ private:
     sf::Texture m_goldTex;
     sf::Texture m_silverTex;
     sf::Texture m_heartTex;
+    sf::Texture m_healthBarTex;
 };

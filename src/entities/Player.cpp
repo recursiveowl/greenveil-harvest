@@ -1,7 +1,8 @@
-#include "entities/Player.h"
+Ôªø#include "entities/Player.h"
 #include "world/TileMap.h"
 #include "systems/BuildingSystem.h"
 #include "core/PlaceholderAssets.h"
+#include "world/BushSystem.h"
 #include <cmath>
 
 static constexpr float PI = 3.14159265f;
@@ -45,13 +46,15 @@ float Player::getSwingAngle() const {
     return 0.f;
 }
 
-void Player::update(float dt, const TileMap& map,
-    const BuildingSystem& buildings) {
+void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes) {
+    float speed = SPEED;
+    if (bushes.isInBush(m_sprite.getPosition()))
+        speed *= 0.45f;
     sf::Vector2f vel{ 0.f, 0.f };
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) vel.y -= SPEED;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) vel.y += SPEED;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) vel.x -= SPEED;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) vel.x += SPEED;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) vel.y -= speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) vel.y += speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) vel.x -= speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) vel.x += speed;
 
     if (m_jumping) {
         float g = m_jumpVelocity > 0.f ? 1800.f : 2400.f;
@@ -78,7 +81,7 @@ void Player::update(float dt, const TileMap& map,
     // Tile kolizija
     if (wouldCollide(newPos, map)) newPos = cur;
 
-    // Building kolizija ó X i Y odvojeno za sliding
+    // Building kolizija ‚Äî X i Y odvojeno za sliding
     sf::Vector2f tryX = { newPos.x, cur.y };
     sf::Vector2f tryY = { cur.x,    newPos.y };
 
@@ -91,7 +94,7 @@ void Player::update(float dt, const TileMap& map,
         m_sprite.setPosition(tryX);
     else if (!blockY)
         m_sprite.setPosition(tryY);
-    // else ó potpuno blokiran, ne pomjera se
+    // else ‚Äî potpuno blokiran, ne pomjera se
 
     if (m_attackTimer > 0.f) m_attackTimer -= dt;
     if (m_hitFlash > 0.f) m_hitFlash -= dt;
@@ -149,16 +152,16 @@ void Player::draw(sf::RenderWindow& window) {
     float        sweepTotal = 200.f;
     float        startAng = baseAng - 100.f;
 
-    // Velicina i boja po oruûju
+    // Velicina i boja po oru≈æju
     float  outerRange;
     sf::Color arcBaseCol;
     switch (m_weapon) {
     case WeaponType::Sword:
         outerRange = ATTACK_RANGE;           // puni
-        arcBaseCol = sf::Color(255, 220, 60); // ûuta
+        arcBaseCol = sf::Color(255, 220, 60); // ≈æuta
         break;
     case WeaponType::Rod:
-        outerRange = ATTACK_RANGE * 0.65f;   // malo duûi od bare
+        outerRange = ATTACK_RANGE * 0.65f;   // malo du≈æi od bare
         arcBaseCol = sf::Color(140, 160, 200); // siva-plava
         break;
     case WeaponType::Bare:

@@ -1,0 +1,21 @@
+#pragma once
+#include "TileMap.h"
+#include <unordered_set>
+
+class BushSystem {
+public:
+    void generate(const TileMap& map, unsigned seed);
+    bool isSolid(sf::Vector2f pos) const;
+    bool isInBush(sf::Vector2f pos) const;
+    void draw(sf::RenderWindow& window);
+
+private:
+    struct Bush {
+        sf::Vector2i tilePos;
+        float        animOffset{ 0.f };
+    };
+    std::vector<Bush> m_bushes;
+    sf::Texture       m_tex;
+    sf::Clock         m_clock;
+    std::unordered_set<uint32_t> m_bushSet;
+};

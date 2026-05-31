@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "core/AssetManager.h"
+#include "world/BushSystem.h"
 
 class TileMap;
 class BuildingSystem;
@@ -27,7 +28,7 @@ public:
 
     explicit Player(AssetManager& assets);
     void setPosition(sf::Vector2f pos);
-    void update(float dt, const TileMap& map, const BuildingSystem& buildings);
+    void update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes);
     void draw(sf::RenderWindow& window);
     void takeDamage(float dmg);
 

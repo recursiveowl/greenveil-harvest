@@ -74,6 +74,36 @@ void NPC::loadDialogue() {
     m_dialogueIdx = 0;
 }
 
+void NPC::completeMission(int id, bool alreadyHasFish) {
+    m_activeMission = -1;
+    m_dialogueIdx = 0;
+    m_dialogues.clear();
+    switch (id) {
+    case 0:
+        m_dialogues.push_back({ "Here you are, Marko!" });
+        m_dialogues.push_back({ "Wonderful! These crops will keep me going. Take this, friend." });
+        break;
+    case 1:
+        m_dialogues.push_back({ "Here are your crops, Ana!" });
+        m_dialogues.push_back({ "Perfect timing! The traders will be pleased. Here is your cut." });
+        break;
+    case 2:
+        m_dialogues.push_back({ "Three goblins slain, Boris!" });
+        m_dialogues.push_back({ "Ha! The road is safer already. Well earned, warrior." });
+        break;
+    case 3:
+        if (alreadyHasFish) {
+            m_dialogues.push_back({ "I had some spare fish anyway!", false, -1 });
+            m_dialogues.push_back({ "Ahh, fresh fish... My bones thank you, child. Bless you.", false, -1 });
+        }
+        else {
+            m_dialogues.push_back({ "Fresh fish for you, Elder Vid!", false, -1 });
+            m_dialogues.push_back({ "Ahh, fresh fish... My bones thank you, child. Bless you.", false, -1 });
+        }
+        break;
+    }
+}
+
 void NPC::update(float dt, float gameHour, const TileMap& map) {
     m_bobTimer += dt * 3.f;
     if (m_state == NPCState::Talking) return;
@@ -148,15 +178,6 @@ bool NPC::hasMoreDialogue() const {
 void NPC::resetDialogue() {
     m_dialogueIdx = 0;
     m_state       = NPCState::Idle;
-}
-
-void NPC::completeMission(int id) {
-    if (m_activeMission == id) {
-        m_activeMission = -1;
-        loadDialogue();
-        m_dialogues.insert(m_dialogues.begin(),
-            {"Excellent! You have earned your reward. Thank you!"});
-    }
 }
 
 void NPC::draw(sf::RenderWindow& window) {

@@ -4,16 +4,22 @@
 #include <algorithm>
 
 TileMap::TileMap(AssetManager& assets) : m_assets(assets) {
-    // Grass — prava tekstura
     if (!m_layers[0].texture.loadFromFile("assets/textures/grass.png"))
         m_layers[0].texture = PlaceholderAssets::makeGrass();
     m_layers[0].texture.setRepeated(true);
     m_layers[0].texture.setSmooth(false);
 
-    // Ostale — placeholder za sada
     m_layers[1].texture = PlaceholderAssets::makeDirt();
-    m_layers[2].texture = PlaceholderAssets::makeWater();
-    m_layers[3].texture = PlaceholderAssets::makeStone();
+
+    if (!m_layers[2].texture.loadFromFile("assets/textures/water.png"))
+        m_layers[2].texture = PlaceholderAssets::makeWater();
+    m_layers[2].texture.setRepeated(true);
+    m_layers[2].texture.setSmooth(false);
+
+    if (!m_layers[3].texture.loadFromFile("assets/textures/sand.png"))
+        m_layers[3].texture = PlaceholderAssets::makeSand();
+    m_layers[3].texture.setRepeated(true);
+    m_layers[3].texture.setSmooth(false);
 }
 
 bool TileMap::isNearWater(int x, int y, int radius) const {
@@ -24,6 +30,37 @@ bool TileMap::isNearWater(int x, int y, int radius) const {
             if (m_tiles[ny * m_width + nx].type == TileType::Water) return true;
         }
     return false;
+}
+
+void TileMap::forceWaterRegion(int cx, int cy, int radius) {
+    PerlinNoise n(cx * 7 + cy * 13); // unique seed per lake
+
+    for (int dy = -(radius + 4); dy <= radius + 4; ++dy)
+        for (int dx = -(radius + 4); dx <= radius + 4; ++dx) {
+            int x = cx + dx, y = cy + dy;
+            if (x < 0 || y < 0 || x >= m_width || y >= m_height) continue;
+
+            // Noise distortion na rubu
+            float distort = n.octave(dx * 0.3f, dy * 0.3f, 3, 0.5f) * 2.f - 1.f;
+            float effectiveR = radius + distort * radius * 0.5f;
+            float d = std::sqrt(static_cast<float>(dx * dx + dy * dy));
+
+            Tile& t = m_tiles[y * m_width + x];
+            if (d < effectiveR) {
+                t.type = TileType::Water;
+                t.solid = true;
+            }
+        }
+
+    // Sand border pass
+    for (int dy = -(radius + 6); dy <= radius + 6; ++dy)
+        for (int dx = -(radius + 6); dx <= radius + 6; ++dx) {
+            int x = cx + dx, y = cy + dy;
+            if (x < 0 || y < 0 || x >= m_width || y >= m_height) continue;
+            if (m_tiles[y * m_width + x].type != TileType::Water)
+                if (isNearWater(x, y, 2))
+                    m_tiles[y * m_width + x].type = TileType::Sand;
+        }
 }
 
 void TileMap::generate(int width, int height, unsigned seed) {
@@ -37,29 +74,25 @@ void TileMap::generate(int width, int height, unsigned seed) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             Tile& t = m_tiles[y * width + x];
-            float elevation = noise.octave(x * 0.03f, y * 0.03f, 6, 0.5f);
-            float wet = moisture.octave(x * 0.05f, y * 0.05f, 4, 0.6f);
 
-            if (elevation < 0.35f) { t.type = TileType::Water; t.solid = true; }
-            else if (elevation < 0.45f || wet > 0.7f) { t.type = TileType::Dirt;  t.solid = false; }
-            else if (elevation > 0.75f) { t.type = TileType::Stone; t.solid = true; }
-            else { t.type = TileType::Grass; t.solid = false; }
+            float w = noise.octave(x * 0.004f, y * 0.004f, 8, 0.55f);
+
+            TileType type = TileType::Grass;
+            if (w > 0.68f)            type = TileType::Water;
+            else if (isNearWater(x, y, 2)) type = TileType::Sand;
+
+            t.type = type;
+            t.solid = (type == TileType::Water);
+            t.fertile = false;
         }
     }
-
-    for (int y = 0; y < height; ++y)
-        for (int x = 0; x < width; ++x) {
-            Tile& t = m_tiles[y * width + x];
-            if (t.type == TileType::Dirt && isNearWater(x, y, 4))
-                t.fertile = true;
-        }
 }
 
 void TileMap::setTileType(int x, int y, TileType type) {
     if (x < 0 || y < 0 || x >= m_width || y >= m_height) return;
     Tile& t = m_tiles[y * m_width + x];
     t.type = type;
-    t.solid = (type == TileType::Water || type == TileType::Stone);
+    t.solid = (type == TileType::Water);
     t.fertile = (type == TileType::Dirt && isNearWater(x, y, 4));
 }
 

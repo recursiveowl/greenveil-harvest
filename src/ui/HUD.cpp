@@ -8,6 +8,8 @@ HUD::HUD() {
     (void)m_goldTex.loadFromFile("assets/textures/gold_coins.png");
     (void)m_silverTex.loadFromFile("assets/textures/silver_coins.png");
     (void)m_heartTex.loadFromFile("assets/textures/heart.png");
+    (void)m_healthBarTex.loadFromFile("assets/textures/healthbar.png");
+    m_healthBarTex.setSmooth(false);
     m_heartTex.setSmooth(false);
     m_goldTex.setSmooth(false);
     m_silverTex.setSmooth(false);
@@ -31,28 +33,19 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
     float y = Y(16.f);
     float ratio = std::max(0.f, hp / maxHp);
 
-    sf::RectangleShape bg({ barW, barH });
-    bg.setPosition({ x, y });
-    bg.setFillColor(sf::Color(60, 0, 0, 200));
-    bg.setOutlineThickness(2.f);
-    bg.setOutlineColor(sf::Color(0, 0, 0, 180));
-    window.draw(bg);
+    sf::Sprite hpBar(m_healthBarTex);
+    float fullWidth = static_cast<float>(m_healthBarTex.getSize().x);
+    float fullHeight = static_cast<float>(m_healthBarTex.getSize().y);
+    float targetW = 275.f;
+    float targetH = 58.f;
+    hpBar.setScale({ targetW / fullWidth, targetH / fullHeight });
+    hpBar.setPosition({ x, y });
+    window.draw(hpBar);
 
-    sf::Color hpCol = ratio > 0.5f
-        ? sf::Color(50, 200, 50)
-        : ratio > 0.25f ? sf::Color(220, 180, 0) : sf::Color(220, 40, 40);
-
-    sf::RectangleShape fill({ barW * ratio, barH });
-    fill.setPosition({ x, y });
-    fill.setFillColor(hpCol);
+    sf::RectangleShape fill({ (targetW - 44.f) * ratio, targetH - 22.f });
+    fill.setPosition({ x + 19.f, y + 11.f });
+    fill.setFillColor(sf::Color(40, 160, 40));
     window.draw(fill);
-
-    sf::Text hpText(m_font,
-        "HP: " + std::to_string(static_cast<int>(hp)) + " / " +
-        std::to_string(static_cast<int>(maxHp)), S(13.f));
-    hpText.setFillColor(sf::Color::White);
-    hpText.setPosition({ x + X(4.f), y + Y(1.f) });
-    window.draw(hpText);
 
     int  hour = static_cast<int>(gameHour) % 24;
     int  minute = static_cast<int>((gameHour - std::floor(gameHour)) * 60.f);
@@ -67,10 +60,10 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
 
     sf::Text timeText(m_font, timeStr, S(14.f));
     timeText.setFillColor(sf::Color(220, 220, 180));
-    timeText.setPosition({ x, y + barH + Y(6.f) });
+    timeText.setPosition({ x, y + barH + Y(35.f) });
     window.draw(timeText);
 
-    float wy = y + barH + Y(24.f);
+    float wy = y + barH + Y(70.f);
 
     sf::Sprite goldIcon(m_goldTex);
     goldIcon.setScale({ s * 1.5f, s * 1.5f });
@@ -98,16 +91,6 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
         emText.setPosition({ x + X(130.f), wy + Y(1.f) });
         window.draw(emText);
     }
-
-    sf::Text mHint(m_font, "[ M ] Market", S(11.f));
-    mHint.setFillColor(sf::Color(120, 120, 140));
-    mHint.setPosition({ x, y + barH + Y(44.f) });
-    window.draw(mHint);
-
-    sf::Text eqHint(m_font, "Sword=LClick  Rod=F near water", S(10.f));
-    eqHint.setFillColor(sf::Color(90, 90, 110));
-    eqHint.setPosition({ x, y + barH + Y(58.f) });
-    window.draw(eqHint);
 
     // Srca
     float heartSize = 15.f * s * 3.f;

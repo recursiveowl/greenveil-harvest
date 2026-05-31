@@ -49,6 +49,12 @@ bool NPCManager::tryInteract(sf::Vector2f playerPos, float gameHour) {
 }
 
 void NPCManager::advanceDialogue(int playerCrops, int playerKills) {
+    if (m_turnInJustHappened) {
+        m_turnInJustHappened = false;
+        return;
+    }
+    printf("advanceDialogue: activeSpeaker=%p visible=%d pendingClose=%d\n",
+        m_activeSpeaker, m_dialogueBox.isVisible(), m_pendingCloseOnly);
     if (!m_activeSpeaker || !m_dialogueBox.isVisible()) return;
 
     // Ako je ovo samo poruka "vec imas misiju" — sljedeci klik je zatvara
@@ -117,19 +123,44 @@ void NPCManager::closeDialogue() {
 
 bool NPCManager::canTurnIn(sf::Vector2f playerPos) const {
     const Mission* active = m_missions.getActiveMission();
+    printf("canTurnIn: active=%p status=%d\n", active, active ? (int)active->status : -1);
     if (!active) return false;
     if (active->status != MissionStatus::ReadyToTurn) return false;
 
     int npcIdx = active->npcId;
     if (npcIdx < 0 || npcIdx >= static_cast<int>(m_npcs.size())) return false;
-    return dist(m_npcs[npcIdx].getPosition(), playerPos) <= NPC::INTERACT_RANGE;
+    float d = dist(m_npcs[npcIdx].getPosition(), playerPos);
+    printf("canTurnIn: npcIdx=%d dist=%f range=%f\n", npcIdx, d, NPC::INTERACT_RANGE);
+    return d <= NPC::INTERACT_RANGE;
 }
 
-bool NPCManager::tryTurnIn(sf::Vector2f playerPos) {
+bool NPCManager::tryTurnIn(sf::Vector2f playerPos, int playerFishCount) {
     const Mission* active = m_missions.getActiveMission();
     if (!active) return false;
     if (!canTurnIn(playerPos)) return false;
-    return m_missions.tryTurnIn(active->id);
+
+    int npcIdx = active->npcId;
+    int missionId = active->id;
+    int requireCrops = active->requireCrops;
+    bool alreadyHas = (missionId == 3) && (playerFishCount >= requireCrops);
+
+    if (!m_missions.tryTurnIn(active->id)) return false;
+
+    if (npcIdx >= 0 && npcIdx < (int)m_npcs.size()) {
+        if (m_activeSpeaker) {
+            m_activeSpeaker->resetDialogue();
+            m_activeSpeaker = nullptr;
+        }
+        m_dialogueBox.hide();
+        m_npcs[npcIdx].completeMission(missionId, alreadyHas);
+        m_pendingCloseOnly = false;
+        m_pendingMissionId = -1;
+        m_pendingMissionNpcIdx = -1;
+        m_activeSpeaker = &m_npcs[npcIdx];
+        m_dialogueBox.show("You", m_activeSpeaker->getCurrentDialogue().text);
+        m_turnInJustHappened = true; // ← ovdje
+    }
+    return true;
 }
 
 void NPCManager::drawUI(sf::RenderWindow& window) {
