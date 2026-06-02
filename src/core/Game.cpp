@@ -19,32 +19,35 @@ Game::Game()
     , m_coinPickup(m_assets)
 {
     UI::init(m_window.getSize().x, m_window.getSize().y);
-
-    UI::init(m_window.getSize().x, m_window.getSize().y);
-
     m_window.setVerticalSyncEnabled(true);
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-    unsigned seed = static_cast<unsigned>(std::time(nullptr));
-    m_tileMap.generate(256, 256, seed);
-    m_player.setPosition({
-        static_cast<float>(128 * TileMap::TILE_SIZE),
-        static_cast<float>(128 * TileMap::TILE_SIZE)
-        });
-
-    m_camera.follow(m_player.getPosition(), 1.f);
-    m_camera.snapTo(m_player.getPosition());
-
-    // Pocetni novac
     m_wallet.gold = 2;
     m_wallet.silver = 50;
 
-    spawnVillage();
+    SaveData sd;
+    if (SaveSystem::load(0, sd) && sd.hasData) {
+        m_seed = sd.mapSeed;
+        m_tileMap.generate(256, 256, m_seed);
+        SaveSystem::loadTiles(0, m_tileMap);
+        m_bushes.generate(m_tileMap, m_seed);
+        m_grassDecor.generate(m_tileMap, m_seed);
+        applyLoadedData(sd, 0);
+    }
+    else {
+        m_seed = static_cast<unsigned>(std::time(nullptr));
+        m_tileMap.generate(256, 256, m_seed);
+        m_player.setPosition({
+            static_cast<float>(128 * TileMap::TILE_SIZE),
+            static_cast<float>(128 * TileMap::TILE_SIZE)
+            });
+        m_bushes.generate(m_tileMap, m_seed);
+        m_grassDecor.generate(m_tileMap, m_seed);
+        spawnVillage();
+    }
 
-    m_bushes.generate(m_tileMap, seed);
-    m_grassDecor.generate(m_tileMap, seed);
-
-    loadGame();
+    m_camera.follow(m_player.getPosition(), 1.f);
+    m_camera.snapTo(m_player.getPosition());
 
 #ifdef _WIN32
     HWND hwnd = m_window.getNativeHandle();
@@ -59,8 +62,12 @@ Game::Game()
 
 void Game::applyProgressionStats() {}
 
-void Game::saveGame() {
+SaveData Game::buildSaveData() {
     SaveData sd;
+    sd.hasData = true;
+    sd.mapSeed = m_seed;
+    sd.playerLevel = m_progression.getLevel();
+    sd.playMinutes = static_cast<int>(m_playSeconds / 60.f);
     sd.playerX = m_player.getPosition().x;
     sd.playerY = m_player.getPosition().y;
     sd.playerHp = m_player.getHp();
@@ -70,41 +77,48 @@ void Game::saveGame() {
     sd.skillPoints = m_progression.getSkillPoints();
     sd.coins = m_wallet.toSilver();
     sd.totalKills = m_npcManager.getMissions().getKillCount();
-
     const auto& skills = m_progression.getSkills();
     for (int i = 0; i < static_cast<int>(SkillType::COUNT); ++i)
         sd.skillLevels[i] = skills[i].level;
-
     const auto& slots = m_inventory.slots;
     for (int i = 0; i < Inventory::SLOTS; ++i) {
         sd.itemTypes[i] = static_cast<int>(slots[i].type);
         sd.itemCounts[i] = slots[i].count;
     }
-
-    const auto& missions = m_npcManager.getMissions().getAllMissions();
-    for (int i = 0; i < std::min(4, static_cast<int>(missions.size())); ++i)
-        sd.missionStatuses[i] = static_cast<int>(missions[i].status);
-
-    SaveSystem::save("savegame.bin", sd);
+    return sd;
 }
 
-void Game::loadGame() {
-    SaveData sd;
-    if (!SaveSystem::load("savegame.bin", sd)) {
-        // Nema save fajla ili je format promijenjen — koristi defaulte
-        return;
-    }
+void Game::applyLoadedData(const SaveData& sd, int slot) {
+    m_combat = CombatSystem{};
+    m_farming = FarmingSystem{};
+    m_interactTiles = InteractTileManager{};
+    m_npcManager = NPCManager{};
+    m_coinPickup.reset();
 
     m_player.setPosition({ sd.playerX, sd.playerY });
     m_gameHour = sd.gameHour;
-
+    m_playSeconds = static_cast<float>(sd.playMinutes * 60);
     m_wallet = Wallet{};
     m_wallet.addSilver(sd.coins);
-
     for (int i = 0; i < Inventory::SLOTS; ++i) {
         m_inventory.slots[i].type = static_cast<ItemType>(sd.itemTypes[i]);
         m_inventory.slots[i].count = sd.itemCounts[i];
     }
+
+    spawnVillage();
+    SaveSystem::loadTiles(slot, m_tileMap);
+    m_camera.snapTo(m_player.getPosition());
+}
+
+void Game::saveGame() {
+    SaveData sd = buildSaveData();
+    SaveSystem::save(0, sd);
+}
+
+void Game::loadGame() {
+    SaveData sd;
+    if (!SaveSystem::load(0, sd)) return;
+    applyLoadedData(sd);
 }
 
 void Game::spawnVillage() {
@@ -202,14 +216,17 @@ void Game::processEvents() {
                 switch (k->code) {
             case sf::Keyboard::Key::Escape:
                 if (m_interactPrompt.isVisible()) { m_interactPrompt.hide(); break; }
-                if (m_npcManager.isDialogueOpen())
-                    m_npcManager.closeDialogue();
-                else if (m_buildingUI.isOpen())
-                    m_buildingUI.close();
-                else if (m_buildingUI.hasSelected())
-                    m_buildingUI.clearSelected();
-                else
-                    m_window.close();
+                if (m_npcManager.isDialogueOpen()) { m_npcManager.closeDialogue(); break; }
+                if (m_buildingUI.isOpen()) { m_buildingUI.close(); break; }
+                if (m_buildingUI.hasSelected()) { m_buildingUI.clearSelected(); break; }
+                if (m_gameState == GameState::SaveMenu) {
+                   m_gameState = GameState::Playing; break;
+                }
+                for (int i = 0; i < 3; ++i) {
+                     m_slotPreviews[i] = {};
+                     SaveSystem::load(i, m_slotPreviews[i]);
+                }
+                m_gameState = GameState::SaveMenu;
                 break;
 
             case sf::Keyboard::Key::C:
@@ -358,6 +375,40 @@ void Game::processEvents() {
                 static_cast<float>(click->position.x),
                 static_cast<float>(click->position.y) };
 
+            if (m_gameState == GameState::SaveMenu) {
+                SaveAction action = m_saveUI.handleClick(mpos, m_slotPreviews);
+
+                auto doSave = [&](int slot) {
+                    SaveData sd = buildSaveData();
+                    SaveSystem::save(slot, sd);
+                    SaveSystem::saveTiles(slot, m_tileMap);
+                    m_slotPreviews[slot] = sd;
+                    };
+                auto doLoad = [&](int slot) {
+                    m_tileMap.generate(256, 256, m_slotPreviews[slot].mapSeed);
+                    applyLoadedData(m_slotPreviews[slot], slot);
+                    m_gameState = GameState::Playing;
+                    };
+                auto doDelete = [&](int slot) {
+                    SaveSystem::deleteSlot(slot);
+                    m_slotPreviews[slot] = {};
+                    };
+
+                switch (action) {
+                case SaveAction::Save0:   doSave(0);   break;
+                case SaveAction::Save1:   doSave(1);   break;
+                case SaveAction::Save2:   doSave(2);   break;
+                case SaveAction::Load0:   doLoad(0);   break;
+                case SaveAction::Load1:   doLoad(1);   break;
+                case SaveAction::Load2:   doLoad(2);   break;
+                case SaveAction::Delete0: doDelete(0); break;
+                case SaveAction::Delete1: doDelete(1); break;
+                case SaveAction::Delete2: doDelete(2); break;
+                default: break;
+                }
+                return;
+            }
+
             if (m_buildingUI.isOpen()) {
                 m_buildingUI.handleClick(mpos, m_building, m_inventory);
                 break;
@@ -487,7 +538,9 @@ void Game::processEvents() {
 
 void Game::update(float dt) {
     if (m_gameOver) return;
-    // SkillUI i MarketUI vise NE pauziraju igru
+
+    if (m_gameState == GameState::Playing)
+        m_playSeconds += dt;
 
     m_prevHour = m_gameHour;
     bool  isNightTime = (m_gameHour >= 21.f || m_gameHour < 6.f);
@@ -651,6 +704,11 @@ void Game::render() {
             static_cast<float>(m_windowH) });
         overlay.setFillColor(sf::Color(0, 0, 0, 160));
         m_window.draw(overlay);
+    }
+
+    if (m_gameState == GameState::SaveMenu) {
+        m_camera.applyUI(m_window);
+        m_saveUI.draw(m_window, m_slotPreviews);
     }
 
     m_window.display();

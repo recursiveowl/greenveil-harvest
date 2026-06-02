@@ -14,6 +14,7 @@ public:
 	explicit CoinPickup(AssetManager& assets);
 	void spawnCoins(sf::Vector2f center, int count,
 		unsigned seed, const TileMap& map);
+	void reset() { m_coins.clear(); m_accum = 0; }
 	void update(sf::Vector2f playerPos);
 	int pollCollected();
 	void draw(sf::RenderWindow& window);

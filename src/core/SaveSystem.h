@@ -3,6 +3,7 @@
 #include "systems/ProgressionSystem.h"
 #include "systems/Inventory.h"
 #include "systems/MissionSystem.h"
+#include "world/TileMap.h"
 
 struct SaveData {
     // Player
@@ -21,10 +22,23 @@ struct SaveData {
     int   coins{ 0 };      // ukupno u silver
     int   totalKills{ 0 };
     int   missionStatuses[4]{};
+
+    int  playMinutes{ 0 };
+    int  playerLevel{ 1 };
+
+    unsigned mapSeed{ 0 };
+
+    bool hasData{ false };
 };
 
 class SaveSystem {
 public:
     static bool save(const std::string& path, const SaveData& data);
     static bool load(const std::string& path, SaveData& data);
+    static bool save(int slot, const SaveData& data);
+    static bool saveTiles(int slot, const TileMap& map);
+    static bool loadTiles(int slot, TileMap& map);
+    static bool load(int slot, SaveData& data);
+    static void deleteSlot(int slot);
+    static std::string slotPath(int slot);
 };
