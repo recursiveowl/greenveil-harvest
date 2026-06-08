@@ -27,6 +27,7 @@
 #include "world/GrassDecor.h"
 #include "world/BushSystem.h"
 #include "ui/SaveUI.h"
+#include "ui/MainMenu.h"
 
 class Game {
 public:
@@ -42,6 +43,7 @@ private:
     void loadGame();
     void applyProgressionStats();
     void applyLoadedData(const SaveData& sd, int slot = 0);
+    void deleteSave();
     SaveData buildSaveData();
 
     static constexpr unsigned WINDOW_W = 1280;
@@ -79,6 +81,7 @@ private:
     BushSystem          m_bushes;
     SaveUI              m_saveUI;
     SaveData            m_slotPreviews[3];
+    MainMenu            m_mainMenu;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
@@ -88,8 +91,8 @@ private:
     bool                m_bossSpawnedThisNight{ false };
     unsigned            m_seed{ 0 };
 
-    enum class GameState { Playing, SaveMenu };
-    GameState m_gameState{ GameState::Playing };
+    enum class GameState { MainMenu, Playing, SaveMenu };
+    GameState   m_gameState{ GameState::MainMenu };
 
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||

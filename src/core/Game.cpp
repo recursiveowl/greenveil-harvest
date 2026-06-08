@@ -161,6 +161,14 @@ void Game::processEvents() {
         if (event->is<sf::Event::Closed>())
             m_window.close();
 
+        if (m_gameState == GameState::MainMenu) {
+            auto action = m_mainMenu.handleEvent(*event, m_window.getSize());
+            if (action == MenuAction::NewGame) { deleteSave(); m_gameState = GameState::Playing; loadGame(); }
+            if (action == MenuAction::Continue) { loadGame(); m_gameState = GameState::Playing; }
+            if (action == MenuAction::Exit) { m_window.close(); }
+            continue; // koristi continue jer si u while(pollEvent) loopu
+        }
+
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
 
             if (k->scancode == sf::Keyboard::Scancode::Unknown) break;
@@ -537,6 +545,7 @@ void Game::processEvents() {
 }
 
 void Game::update(float dt) {
+    if (m_gameState == GameState::MainMenu) return;
     if (m_gameOver) return;
 
     if (m_gameState == GameState::Playing)
@@ -646,6 +655,13 @@ void Game::update(float dt) {
 } //
 
 void Game::render() {
+    if (m_gameState == GameState::MainMenu) {
+        m_window.clear();
+        m_mainMenu.draw(m_window);
+        m_window.display();
+        return;
+    }
+
     m_window.clear(sf::Color(20, 20, 20));
 
     m_camera.apply(m_window);
@@ -713,3 +729,5 @@ void Game::render() {
 
     m_window.display();
 }
+
+void Game::deleteSave() { std::remove("savegame.bin"); }
