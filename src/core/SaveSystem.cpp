@@ -17,7 +17,8 @@ bool SaveSystem::load(int slot, SaveData& data) {
     std::ifstream f(slotPath(slot), std::ios::binary);
     if (!f) return false;
     f.read(reinterpret_cast<char*>(&data), sizeof(SaveData));
-    return f.good();
+    if (f.good()) { data.hasData = true; return true; }
+    return false;
 }
 
 bool SaveSystem::saveTiles(int slot, const TileMap& map) {

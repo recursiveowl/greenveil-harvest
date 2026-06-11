@@ -79,20 +79,22 @@ private:
     InteractPrompt      m_interactPrompt;
     GrassDecor          m_grassDecor;
     BushSystem          m_bushes;
-    SaveUI              m_saveUI;
-    SaveData            m_slotPreviews[3];
-    MainMenu            m_mainMenu;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
-    float               m_playSeconds{ 0.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
     bool                m_bossSpawnedThisNight{ false };
     unsigned            m_seed{ 0 };
 
-    enum class GameState { MainMenu, Playing, SaveMenu };
+    enum class GameState { MainMenu, SaveSelect, SaveMenu, Playing };
     GameState   m_gameState{ GameState::MainMenu };
+    enum class SaveMode { NewGame, Continue };
+    SaveMode  m_saveMode{ SaveMode::Continue };
+    SaveData  m_slotPreviews[3]{};
+    float     m_playSeconds{ 0.f };
+    MainMenu  m_mainMenu;
+    SaveUI    m_saveUI;
 
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||

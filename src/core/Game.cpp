@@ -25,28 +25,15 @@ Game::Game()
     m_wallet.gold = 2;
     m_wallet.silver = 50;
 
-    SaveData sd;
-    if (SaveSystem::load(0, sd) && sd.hasData) {
-        m_seed = sd.mapSeed;
-        m_tileMap.generate(256, 256, m_seed);
-        SaveSystem::loadTiles(0, m_tileMap);
-        m_bushes.generate(m_tileMap, m_seed);
-        m_grassDecor.generate(m_tileMap, m_seed);
-        applyLoadedData(sd, 0);
-    }
-    else {
-        m_seed = static_cast<unsigned>(std::time(nullptr));
-        m_tileMap.generate(256, 256, m_seed);
-        m_player.setPosition({
-            static_cast<float>(128 * TileMap::TILE_SIZE),
-            static_cast<float>(128 * TileMap::TILE_SIZE)
-            });
-        m_bushes.generate(m_tileMap, m_seed);
-        m_grassDecor.generate(m_tileMap, m_seed);
-        spawnVillage();
-    }
-
-    m_camera.follow(m_player.getPosition(), 1.f);
+    // Generiši privremeni world — MainMenu se prikazuje odmah
+    m_seed = static_cast<unsigned>(std::time(nullptr));
+    m_tileMap.generate(256, 256, m_seed);
+    m_player.setPosition({
+        static_cast<float>(128 * TileMap::TILE_SIZE),
+        static_cast<float>(128 * TileMap::TILE_SIZE)
+        });
+    m_bushes.generate(m_tileMap, m_seed);
+    m_grassDecor.generate(m_tileMap, m_seed);
     m_camera.snapTo(m_player.getPosition());
 
 #ifdef _WIN32
@@ -113,6 +100,7 @@ void Game::applyLoadedData(const SaveData& sd, int slot) {
 void Game::saveGame() {
     SaveData sd = buildSaveData();
     SaveSystem::save(0, sd);
+    SaveSystem::saveTiles(0, m_tileMap);
 }
 
 void Game::loadGame() {
@@ -163,10 +151,133 @@ void Game::processEvents() {
 
         if (m_gameState == GameState::MainMenu) {
             auto action = m_mainMenu.handleEvent(*event, m_window.getSize());
-            if (action == MenuAction::NewGame) { deleteSave(); m_gameState = GameState::Playing; loadGame(); }
-            if (action == MenuAction::Continue) { loadGame(); m_gameState = GameState::Playing; }
-            if (action == MenuAction::Exit) { m_window.close(); }
-            continue; // koristi continue jer si u while(pollEvent) loopu
+            if (action == MenuAction::NewGame) {
+                SaveSystem::deleteSlot(0);
+                SaveSystem::deleteSlot(1);
+                SaveSystem::deleteSlot(2);
+                m_seed = static_cast<unsigned>(std::time(nullptr));
+                m_tileMap.generate(256, 256, m_seed);
+                m_bushes.generate(m_tileMap, m_seed);
+                m_grassDecor.generate(m_tileMap, m_seed);
+                m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
+                m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
+                m_inventory = Inventory{};
+                m_combat = CombatSystem{};
+                m_farming = FarmingSystem{};
+                m_npcManager = NPCManager{};
+                m_interactTiles = InteractTileManager{};
+                m_coinPickup.reset();
+                m_playSeconds = 0.f;
+                m_gameHour = 8.f;
+                spawnVillage();
+                m_camera.snapTo(m_player.getPosition());
+                m_gameState = GameState::Playing;
+            }
+            if (action == MenuAction::Continue) {
+                int bestSlot = -1;
+                int bestMinutes = -1;
+                for (int i = 0; i < 3; ++i) {
+                    SaveData sd{};
+                    if (SaveSystem::load(i, sd) && sd.hasData && sd.playMinutes > bestMinutes) {
+                        bestMinutes = sd.playMinutes;
+                        bestSlot = i;
+                    }
+                }
+                if (bestSlot >= 0) {
+                    SaveData sd{};
+                    SaveSystem::load(bestSlot, sd);
+                    m_seed = sd.mapSeed;
+                    m_tileMap.generate(256, 256, m_seed);
+                    m_bushes.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed);
+                    applyLoadedData(sd, bestSlot);
+                    m_gameState = GameState::Playing;
+                }
+                else {
+                    m_seed = static_cast<unsigned>(std::time(nullptr));
+                    m_tileMap.generate(256, 256, m_seed);
+                    m_bushes.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
+                    m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
+                    m_inventory = Inventory{};
+                    m_combat = CombatSystem{};
+                    m_farming = FarmingSystem{};
+                    m_npcManager = NPCManager{};
+                    m_interactTiles = InteractTileManager{};
+                    m_coinPickup.reset();
+                    m_playSeconds = 0.f;
+                    m_gameHour = 8.f;
+                    spawnVillage();
+                    m_camera.snapTo(m_player.getPosition());
+                    m_gameState = GameState::Playing;
+                }
+            }
+            if (action == MenuAction::Exit) m_window.close();
+            continue;
+        }
+
+        if (m_gameState == GameState::SaveSelect) {
+            if (const auto* k = event->getIf<sf::Event::KeyPressed>())
+                if (k->code == sf::Keyboard::Key::Escape)
+                    m_gameState = GameState::MainMenu;
+
+            if (const auto* c = event->getIf<sf::Event::MouseButtonPressed>()) {
+                sf::Vector2f mp((float)c->position.x, (float)c->position.y);
+                SaveAction action = m_saveUI.handleClick(mp, m_slotPreviews);
+
+                auto doNew = [&](int slot) {
+                    SaveSystem::deleteSlot(slot);
+                    m_seed = static_cast<unsigned>(std::time(nullptr));
+                    m_tileMap.generate(256, 256, m_seed);
+                    m_bushes.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
+                    m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
+                    m_inventory = Inventory{};
+                    spawnVillage();
+                    m_gameState = GameState::Playing;
+                    };
+                auto doLoad = [&](int slot) {
+                    m_seed = m_slotPreviews[slot].mapSeed;
+                    m_tileMap.generate(256, 256, m_seed);
+                    m_bushes.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed);
+                    applyLoadedData(m_slotPreviews[slot], slot);
+                    m_gameState = GameState::Playing;
+                    };
+                auto doDelete = [&](int slot) {
+                    SaveSystem::deleteSlot(slot);
+                    m_slotPreviews[slot] = {};
+                    };
+                auto doSave = [&](int slot) {
+                    SaveData sd = buildSaveData();
+                    SaveSystem::save(slot, sd);
+                    SaveSystem::saveTiles(slot, m_tileMap);
+                    m_slotPreviews[slot] = sd;
+                    };
+
+                if (m_saveMode == SaveMode::NewGame) {
+                    if (action == SaveAction::Save0) doNew(0);
+                    if (action == SaveAction::Save1) doNew(1);
+                    if (action == SaveAction::Save2) doNew(2);
+                }
+                else {
+                    switch (action) {
+                    case SaveAction::Load0: doLoad(0); break;
+                    case SaveAction::Load1: doLoad(1); break;
+                    case SaveAction::Load2: doLoad(2); break;
+                    case SaveAction::Save0: doSave(0); break;
+                    case SaveAction::Save1: doSave(1); break;
+                    case SaveAction::Save2: doSave(2); break;
+                    case SaveAction::Delete0: doDelete(0); break;
+                    case SaveAction::Delete1: doDelete(1); break;
+                    case SaveAction::Delete2: doDelete(2); break;
+                    default: break;
+                    }
+                }
+            }
+            continue;
         }
 
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
