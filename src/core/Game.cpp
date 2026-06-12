@@ -54,7 +54,7 @@ SaveData Game::buildSaveData() {
     sd.hasData = true;
     sd.mapSeed = m_seed;
     sd.playerLevel = m_progression.getLevel();
-    sd.playMinutes = static_cast<int>(m_playSeconds / 60.f);
+    sd.playMinutes = m_slotBaseMinutes + static_cast<int>(m_playSeconds / 60.f);
     sd.playerX = m_player.getPosition().x;
     sd.playerY = m_player.getPosition().y;
     sd.playerHp = m_player.getHp();
@@ -82,9 +82,11 @@ void Game::applyLoadedData(const SaveData& sd, int slot) {
     m_npcManager = NPCManager{};
     m_coinPickup.reset();
 
+    m_slotBaseMinutes = sd.playMinutes;
+    m_playSeconds = 0.f;
+
     m_player.setPosition({ sd.playerX, sd.playerY });
     m_gameHour = sd.gameHour;
-    m_playSeconds = static_cast<float>(sd.playMinutes * 60);
     m_wallet = Wallet{};
     m_wallet.addSilver(sd.coins);
     for (int i = 0; i < Inventory::SLOTS; ++i) {
@@ -99,8 +101,8 @@ void Game::applyLoadedData(const SaveData& sd, int slot) {
 
 void Game::saveGame() {
     SaveData sd = buildSaveData();
-    SaveSystem::save(0, sd);
-    SaveSystem::saveTiles(0, m_tileMap);
+    SaveSystem::save(m_currentSlot, sd);
+    SaveSystem::saveTiles(m_currentSlot, m_tileMap);
 }
 
 void Game::loadGame() {
@@ -169,6 +171,7 @@ void Game::processEvents() {
                 m_coinPickup.reset();
                 m_playSeconds = 0.f;
                 m_gameHour = 8.f;
+                m_slotBaseMinutes = 0;
                 spawnVillage();
                 m_camera.snapTo(m_player.getPosition());
                 m_gameState = GameState::Playing;
@@ -184,6 +187,7 @@ void Game::processEvents() {
                     }
                 }
                 if (bestSlot >= 0) {
+                    m_currentSlot = bestSlot;
                     SaveData sd{};
                     SaveSystem::load(bestSlot, sd);
                     m_seed = sd.mapSeed;
@@ -239,6 +243,7 @@ void Game::processEvents() {
                     m_gameState = GameState::Playing;
                     };
                 auto doLoad = [&](int slot) {
+                    m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
@@ -251,6 +256,7 @@ void Game::processEvents() {
                     m_slotPreviews[slot] = {};
                     };
                 auto doSave = [&](int slot) {
+                    m_currentSlot = slot;
                     SaveData sd = buildSaveData();
                     SaveSystem::save(slot, sd);
                     SaveSystem::saveTiles(slot, m_tileMap);
@@ -310,7 +316,7 @@ void Game::processEvents() {
                                     if (remove > 0) m_inventory.removeItem(fishType, remove);
                                     toRemove -= remove;
                                     if (toRemove <= 0) break;
-                                }
+                                } //doLoad
                             }
                             else {
                                 m_inventory.removeItem(ItemType::Crop, requireCrops);
@@ -504,7 +510,11 @@ void Game::processEvents() {
                     m_slotPreviews[slot] = sd;
                     };
                 auto doLoad = [&](int slot) {
-                    m_tileMap.generate(256, 256, m_slotPreviews[slot].mapSeed);
+                    m_currentSlot = slot;
+                    m_seed = m_slotPreviews[slot].mapSeed;
+                    m_tileMap.generate(256, 256, m_seed);
+                    m_bushes.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed);
                     applyLoadedData(m_slotPreviews[slot], slot);
                     m_gameState = GameState::Playing;
                     };

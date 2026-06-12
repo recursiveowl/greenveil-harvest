@@ -96,6 +96,9 @@ private:
     MainMenu  m_mainMenu;
     SaveUI    m_saveUI;
 
+    int m_currentSlot{ 0 };
+    int m_slotBaseMinutes{ 0 };
+
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||
             m_npcManager.isDialogueOpen();
