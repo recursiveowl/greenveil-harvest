@@ -28,6 +28,7 @@
 #include "world/BushSystem.h"
 #include "ui/SaveUI.h"
 #include "ui/MainMenu.h"
+#include "ui/PauseMenu.h"
 
 class Game {
 public:
@@ -79,6 +80,7 @@ private:
     InteractPrompt      m_interactPrompt;
     GrassDecor          m_grassDecor;
     BushSystem          m_bushes;
+    PauseMenu           m_pauseMenu;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
@@ -87,7 +89,7 @@ private:
     bool                m_bossSpawnedThisNight{ false };
     unsigned            m_seed{ 0 };
 
-    enum class GameState { MainMenu, SaveSelect, SaveMenu, Playing };
+    enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing };
     GameState   m_gameState{ GameState::MainMenu };
     enum class SaveMode { NewGame, Continue };
     SaveMode  m_saveMode{ SaveMode::Continue };

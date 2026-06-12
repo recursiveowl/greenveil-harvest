@@ -316,7 +316,7 @@ void Game::processEvents() {
                                     if (remove > 0) m_inventory.removeItem(fishType, remove);
                                     toRemove -= remove;
                                     if (toRemove <= 0) break;
-                                } //doLoad
+                                }
                             }
                             else {
                                 m_inventory.removeItem(ItemType::Crop, requireCrops);
@@ -344,14 +344,9 @@ void Game::processEvents() {
                 if (m_npcManager.isDialogueOpen()) { m_npcManager.closeDialogue(); break; }
                 if (m_buildingUI.isOpen()) { m_buildingUI.close(); break; }
                 if (m_buildingUI.hasSelected()) { m_buildingUI.clearSelected(); break; }
-                if (m_gameState == GameState::SaveMenu) {
-                   m_gameState = GameState::Playing; break;
-                }
-                for (int i = 0; i < 3; ++i) {
-                     m_slotPreviews[i] = {};
-                     SaveSystem::load(i, m_slotPreviews[i]);
-                }
-                m_gameState = GameState::SaveMenu;
+                if (m_gameState == GameState::SaveMenu) { m_gameState = GameState::Playing; break; }
+                if (m_gameState == GameState::PauseMenu) { m_gameState = GameState::Playing; break; }
+                m_gameState = GameState::PauseMenu;
                 break;
 
             case sf::Keyboard::Key::C:
@@ -499,6 +494,20 @@ void Game::processEvents() {
             sf::Vector2f mpos = {
                 static_cast<float>(click->position.x),
                 static_cast<float>(click->position.y) };
+
+            if (m_gameState == GameState::PauseMenu) {
+                auto action = m_pauseMenu.handleClick(mpos, m_window.getSize());
+                if (action == PauseAction::Resume)   m_gameState = GameState::Playing;
+                if (action == PauseAction::SaveLoad) {
+                    for (int i = 0; i < 3; ++i) {
+                        m_slotPreviews[i] = {};
+                        SaveSystem::load(i, m_slotPreviews[i]);
+                    }
+                    m_gameState = GameState::SaveMenu;
+                }
+                if (action == PauseAction::Quit) m_window.close();
+                return;
+            }
 
             if (m_gameState == GameState::SaveMenu) {
                 SaveAction action = m_saveUI.handleClick(mpos, m_slotPreviews);
@@ -666,6 +675,7 @@ void Game::processEvents() {
 }
 
 void Game::update(float dt) {
+    if (m_gameState == GameState::PauseMenu) return;
     if (m_gameState == GameState::MainMenu) return;
     if (m_gameOver) return;
 
@@ -847,6 +857,9 @@ void Game::render() {
         m_camera.applyUI(m_window);
         m_saveUI.draw(m_window, m_slotPreviews);
     }
+
+    if (m_gameState == GameState::PauseMenu)
+        m_pauseMenu.draw(m_window);
 
     m_window.display();
 }
