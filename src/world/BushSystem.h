@@ -9,6 +9,8 @@ public:
     bool isInBush(sf::Vector2f pos) const;
     void draw(sf::RenderWindow& window);
 
+    const std::unordered_set<int>& getTileSet() const { return m_bushSet; }
+
 private:
     struct Bush {
         sf::Vector2i tilePos;
@@ -17,5 +19,5 @@ private:
     std::vector<Bush> m_bushes;
     sf::Texture       m_tex;
     sf::Clock         m_clock;
-    std::unordered_set<uint32_t> m_bushSet;
+    std::unordered_set<int> m_bushSet;
 };

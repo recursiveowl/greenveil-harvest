@@ -25,6 +25,16 @@ Game::Game()
     m_wallet.gold = 2;
     m_wallet.silver = 50;
 
+#ifdef _WIN32
+    HICON hIcon = (HICON)LoadImage(NULL,
+        "assets/icon.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+    if (hIcon) {
+        HWND hwnd = m_window.getNativeHandle();
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    }
+#endif
+
     // Generiši privremeni world — MainMenu se prikazuje odmah
     m_seed = static_cast<unsigned>(std::time(nullptr));
     m_tileMap.generate(256, 256, m_seed);
@@ -33,7 +43,8 @@ Game::Game()
         static_cast<float>(128 * TileMap::TILE_SIZE)
         });
     m_bushes.generate(m_tileMap, m_seed);
-    m_grassDecor.generate(m_tileMap, m_seed);
+    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
     m_camera.snapTo(m_player.getPosition());
 
 #ifdef _WIN32
@@ -160,7 +171,8 @@ void Game::processEvents() {
                 m_seed = static_cast<unsigned>(std::time(nullptr));
                 m_tileMap.generate(256, 256, m_seed);
                 m_bushes.generate(m_tileMap, m_seed);
-                m_grassDecor.generate(m_tileMap, m_seed);
+                m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+                m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                 m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                 m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                 m_inventory = Inventory{};
@@ -193,7 +205,7 @@ void Game::processEvents() {
                     m_seed = sd.mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     applyLoadedData(sd, bestSlot);
                     m_gameState = GameState::Playing;
                 }
@@ -201,7 +213,8 @@ void Game::processEvents() {
                     m_seed = static_cast<unsigned>(std::time(nullptr));
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
@@ -235,7 +248,8 @@ void Game::processEvents() {
                     m_seed = static_cast<unsigned>(std::time(nullptr));
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
@@ -247,7 +261,8 @@ void Game::processEvents() {
                     m_seed = m_slotPreviews[slot].mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     applyLoadedData(m_slotPreviews[slot], slot);
                     m_gameState = GameState::Playing;
                     };
@@ -523,7 +538,8 @@ void Game::processEvents() {
                     m_seed = m_slotPreviews[slot].mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed);
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     applyLoadedData(m_slotPreviews[slot], slot);
                     m_gameState = GameState::Playing;
                     };
@@ -704,7 +720,7 @@ void Game::update(float dt) {
     while (m_progression.levelUp()) {}
 
     if (!m_npcManager.isDialogueOpen())
-        m_player.update(dt, m_tileMap, m_building, m_bushes);
+        m_player.update(dt, m_tileMap, m_building, m_bushes, m_trees);
 
     // Sinhroniziraj weapon type sa selektovanim itemom
     {
@@ -800,6 +816,7 @@ void Game::render() {
     m_grassDecor.draw(m_window);
     m_farming.draw(m_window);
     m_bushes.draw(m_window);
+    m_trees.draw(m_window);
     m_building.draw(m_window);
     m_combat.draw(m_window);
     m_npcManager.draw(m_window);
@@ -834,7 +851,7 @@ void Game::render() {
     if (!m_anyUIOpen()) {
         m_inventory.draw(m_window);
         m_hud.draw(m_window, m_player.getHp(),
-            m_player.getMaxHp(), m_gameHour, m_wallet, m_player.getLives());
+            m_player.getMaxHp(), m_gameHour, m_wallet, m_player.getLives()); //m_bushes.generate(
         bool canFish = m_fishing.canFish(m_player.getPosition(),
             m_tileMap, m_inventory);
         m_fishingUI.draw(m_window, m_fishing, canFish);

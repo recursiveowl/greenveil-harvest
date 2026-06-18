@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "core/AssetManager.h"
 #include "world/BushSystem.h"
+#include "world/TreeSystem.h"
 
 class TileMap;
 class BuildingSystem;
@@ -28,7 +29,7 @@ public:
 
     explicit Player(AssetManager& assets);
     void setPosition(sf::Vector2f pos);
-    void update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes);
+    void update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees);
     void draw(sf::RenderWindow& window);
     void takeDamage(float dmg);
 

@@ -1,6 +1,6 @@
 #include "GrassDecor.h"
 
-void GrassDecor::generate(const TileMap& map, unsigned seed) {
+void GrassDecor::generate(const TileMap& map, unsigned seed, const std::unordered_set<int>& blockedTrees) {
     if (!m_tex.loadFromFile("assets/textures/grass_plants.png")) {
         printf("Failed to load grass_plants.png\n");
         return;
@@ -19,6 +19,7 @@ void GrassDecor::generate(const TileMap& map, unsigned seed) {
     auto allNeighboursGrass = [&](int x, int y) {
         for (int dy = -1; dy <= 1; ++dy)
             for (int dx = -1; dx <= 1; ++dx) {
+                if (blockedTrees.count(y * 10000 + x)) continue;
                 if (dx == 0 && dy == 0) continue;
                 int nx = x + dx, ny = y + dy;
                 if (nx < 0 || ny < 0 || nx >= map.getWidth() || ny >= map.getHeight())

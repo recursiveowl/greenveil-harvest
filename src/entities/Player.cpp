@@ -46,7 +46,7 @@ float Player::getSwingAngle() const {
     return 0.f;
 }
 
-void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes) {
+void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees) {
     float speed = SPEED;
     if (bushes.isInBush(m_sprite.getPosition()))
         speed *= 0.45f;
@@ -85,8 +85,8 @@ void Player::update(float dt, const TileMap& map, const BuildingSystem& building
     sf::Vector2f tryX = { newPos.x, cur.y };
     sf::Vector2f tryY = { cur.x,    newPos.y };
 
-    bool blockX = buildings.isSolid(tryX);
-    bool blockY = buildings.isSolid(tryY);
+    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX);
+    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY);
 
     if (!blockX && !blockY)
         m_sprite.setPosition(newPos);

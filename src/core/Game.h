@@ -29,6 +29,7 @@
 #include "ui/SaveUI.h"
 #include "ui/MainMenu.h"
 #include "ui/PauseMenu.h"
+#include "world/TreeSystem.h"
 
 class Game {
 public:
@@ -81,6 +82,7 @@ private:
     GrassDecor          m_grassDecor;
     BushSystem          m_bushes;
     PauseMenu           m_pauseMenu;
+    TreeSystem          m_trees;
 
     float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
