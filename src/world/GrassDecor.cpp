@@ -11,7 +11,8 @@ void GrassDecor::generate(const TileMap& map, unsigned seed, const std::unordere
     m_verts.setPrimitiveType(sf::PrimitiveType::Triangles);
 
     std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> spawnRoll(0, 4);
+    std::uniform_real_distribution<float> spawnChance(0.f, 1.f);
+    constexpr float BASE_CHANCE = 0.2f;
     std::uniform_int_distribution<int> frameDist(0, 2);
     std::uniform_real_distribution<float> scaleDist(1.f, 1.8f);
     std::uniform_real_distribution<float> cellOffset(1.f, 8.f);
@@ -36,16 +37,17 @@ void GrassDecor::generate(const TileMap& map, unsigned seed, const std::unordere
         for (int x = 0; x < map.getWidth(); ++x) {
             if (map.getTile(x, y).type != TileType::Grass) continue;
             if (!allNeighboursGrass(x, y)) continue;
+            float density = getBiomeDef(map.getBiome(x, y)).floraDensity;
             for (int cy = 0; cy < 2; ++cy)
                 for (int cx = 0; cx < 2; ++cx) {
-                    if (spawnRoll(rng) != 0) continue;
-                    m_sprites.push_back({
-                        {
-                            x * 32.f + cx * CELL + cellOffset(rng),
-                            y * 32.f + cy * CELL + cellOffset(rng)
-                        },
-                        frameDist(rng), scaleDist(rng)
-                        });
+                    if (spawnChance(rng) >= BASE_CHANCE * density) continue;
+                        m_sprites.push_back({
+                            {
+                                x * 32.f + cx * CELL + cellOffset(rng),
+                                y * 32.f + cy * CELL + cellOffset(rng)
+                            },
+                            frameDist(rng), scaleDist(rng)
+                            });
                 }
         }
 

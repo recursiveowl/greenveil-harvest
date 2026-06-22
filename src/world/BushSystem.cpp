@@ -7,7 +7,8 @@ void BushSystem::generate(const TileMap& map, unsigned seed) {
 
     m_bushes.clear();
     std::mt19937 rng(seed + 999);
-    std::uniform_int_distribution<int> roll(0, 180);
+    std::uniform_real_distribution<float> spawnChance(0.f, 1.f);
+    constexpr float BASE_CHANCE = 1.f / 180.f;
     std::uniform_real_distribution<float> animOff(0.f, 6.28f);
 
     // Set zauzetih tile-ova za spacing provjeru
@@ -38,7 +39,8 @@ void BushSystem::generate(const TileMap& map, unsigned seed) {
                     if (isOccupied(x + dx, y + dy)) ok = false;
             if (!ok) continue;
 
-            if (roll(rng) != 0) continue;
+            float density = getBiomeDef(map.getBiome(x, y)).floraDensity;
+            if (spawnChance(rng) >= BASE_CHANCE * density) continue;
 
             m_bushes.push_back({ {x, y}, animOff(rng) });
             m_bushSet.insert(y * 10000 + x);

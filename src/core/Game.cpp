@@ -37,7 +37,8 @@ Game::Game()
 
     // Generiši privremeni world — MainMenu se prikazuje odmah
     m_seed = static_cast<unsigned>(std::time(nullptr));
-    m_tileMap.generate(256, 256, m_seed);
+    m_biomeMap.generate(256, 256, m_seed);
+    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
     m_player.setPosition({
         static_cast<float>(128 * TileMap::TILE_SIZE),
         static_cast<float>(128 * TileMap::TILE_SIZE)
@@ -169,7 +170,8 @@ void Game::processEvents() {
                 SaveSystem::deleteSlot(1);
                 SaveSystem::deleteSlot(2);
                 m_seed = static_cast<unsigned>(std::time(nullptr));
-                m_tileMap.generate(256, 256, m_seed);
+                m_biomeMap.generate(256, 256, m_seed);
+                m_tileMap.generate(256, 256, m_seed, m_biomeMap);
                 m_bushes.generate(m_tileMap, m_seed);
                 m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                 m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
@@ -203,7 +205,8 @@ void Game::processEvents() {
                     SaveData sd{};
                     SaveSystem::load(bestSlot, sd);
                     m_seed = sd.mapSeed;
-                    m_tileMap.generate(256, 256, m_seed);
+                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     applyLoadedData(sd, bestSlot);
@@ -211,8 +214,8 @@ void Game::processEvents() {
                 }
                 else {
                     m_seed = static_cast<unsigned>(std::time(nullptr));
-                    m_tileMap.generate(256, 256, m_seed);
-                    m_bushes.generate(m_tileMap, m_seed);
+                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
@@ -246,7 +249,9 @@ void Game::processEvents() {
                 auto doNew = [&](int slot) {
                     SaveSystem::deleteSlot(slot);
                     m_seed = static_cast<unsigned>(std::time(nullptr));
-                    m_tileMap.generate(256, 256, m_seed);
+                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                    m_biomeMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
@@ -259,7 +264,9 @@ void Game::processEvents() {
                 auto doLoad = [&](int slot) {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
-                    m_tileMap.generate(256, 256, m_seed);
+                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                    m_biomeMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
@@ -536,7 +543,8 @@ void Game::processEvents() {
                 auto doLoad = [&](int slot) {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
-                    m_tileMap.generate(256, 256, m_seed);
+                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
