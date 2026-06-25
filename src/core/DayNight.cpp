@@ -84,17 +84,6 @@ sf::Color DayNight::getAmbientColor(float h) const {
     return sf::Color(60, 60, 120);
 }
 
-float DayNight::getEnemyStrengthMult(float h) const {
-    // Nocu neprijatelji su jaci
-    switch (getTimeOfDay(h)) {
-        case TimeOfDay::Night:   return 2.0f;  // 2x jaci nocu
-        case TimeOfDay::Dusk:    return 1.5f;  // 1.5x u sumrak
-        case TimeOfDay::Dawn:    return 1.3f;  // 1.3x u zoru
-        case TimeOfDay::Evening: return 1.1f;  // malo jaci uvece
-        default:                 return 1.0f;  // normalno danju
-    }
-}
-
 void DayNight::draw(sf::RenderWindow& window, float gameHour) {
     sf::Vector2u ws = window.getSize();
 

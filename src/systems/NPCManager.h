@@ -26,7 +26,7 @@ public:
 
     int getNPCCount() const { return static_cast<int>(m_npcs.size()); }
     sf::Vector2f getElderPos() const {
-        if (m_npcs.size() > 3) return m_npcs[3].getPosition();
+        if (m_npcs.size() > 2) return m_npcs[2].getPosition();
         return { 0.f, 0.f };
     }
 

@@ -9,25 +9,23 @@ enum class MissionStatus : uint8_t {
 };
 
 struct Mission {
-    int           id{-1};
+    int           id{ -1 };
     std::string   title;
     std::string   objective;
     std::string   description;
-    MissionStatus status{MissionStatus::Inactive};
-    int           npcId{-1};
-    int           requireCrops{0};
-    int           requireKills{0};
-    int           rewardCoins{0};
-    int           rewardXP{0};
+    MissionStatus status{ MissionStatus::Inactive };
+    int           npcId{ -1 };
+    int           requireCrops{ 0 };
+    int           rewardCoins{ 0 };
+    int           rewardXP{ 0 };
 
-    // Kills/crops zabilje�eni u trenutku aktivacije questa
-    // (da ne bi prethodni kills racunali)
-    int           killsAtActivation{0};
-    int           cropsAtActivation{0};
+    // Crops zabiljezeni u trenutku aktivacije questa
+    // (da ne bi prethodni crops racunali)
+    int           cropsAtActivation{ 0 };
 
-    // Explore quest � tracked area
+    // Explore quest — tracked area
     sf::FloatRect exploredBounds = sf::FloatRect({ 0.f, 0.f }, { 0.f, 0.f });
-    bool          exploreReady{false};
+    bool          exploreReady{ false };
 };
 
 class MissionSystem {
@@ -35,22 +33,19 @@ public:
     MissionSystem();
 
     bool activateMission(int id, int npcId);
-    void update(int totalCrops, int totalKills, int totalFish = 0);
+    void update(int totalCrops, int totalFish = 0);
     void updateExplore(sf::Vector2f playerPos);
     bool tryTurnIn(int missionId);
-    void registerKill();
 
     const Mission* getMission(int id)        const;
     const Mission* getActiveMission()        const;
     bool                        isActive(int id)          const;
     bool                        isReadyToTurnIn(int id)   const;
-    int                         getKillCount()            const { return m_totalKills; }
     int                         getCurrentCrops()         const { return m_currentCrops; }
     int                         getLastRewardSilver()     const { return m_lastRewardSilver; }
     bool                        hasActiveMission()        const;
 
-    // Za progress prikaz � kills/crops od aktivacije questa
-    int   getQuestKills()  const;
+    // Za progress prikaz — crops od aktivacije questa
     int   getQuestCrops()  const;
     float getExploreProgress() const; // 0.0 - 1.0
 
@@ -58,7 +53,6 @@ public:
 
 private:
     std::vector<Mission> m_missions;
-    int                  m_totalKills{ 0 };
     int                  m_currentCrops{ 0 };
     int                  m_lastRewardSilver{ 0 };
     int                  m_currentFish{ 0 };

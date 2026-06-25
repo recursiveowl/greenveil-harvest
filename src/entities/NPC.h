@@ -7,7 +7,6 @@
 enum class NPCType : uint8_t {
     Farmer = 0,
     Merchant,
-    Guard,
     Elder,
     COUNT
 };

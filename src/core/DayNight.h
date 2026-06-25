@@ -15,9 +15,6 @@ public:
     // Vrati overlay boju za cijeli ekran (tamni/svijetli filter)
     sf::Color getOverlayColor(float gameHour) const;
 
-    // Vrati multiplikator snage neprijatelja
-    float getEnemyStrengthMult(float gameHour) const;
-
     // Vrati trenutno doba dana
     TimeOfDay getTimeOfDay(float gameHour) const;
 

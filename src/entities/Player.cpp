@@ -36,16 +36,6 @@ sf::Vector2f Player::getFacing() const {
     return { 0.f, 1.f };
 }
 
-float Player::getSwingAngle() const {
-    switch (m_facing) {
-    case FacingDir::Right: return 0.f;
-    case FacingDir::Down:  return 90.f;
-    case FacingDir::Left:  return 180.f;
-    case FacingDir::Up:    return 270.f;
-    }
-    return 0.f;
-}
-
 void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees) {
     float speed = SPEED;
     if (bushes.isInBush(m_sprite.getPosition()))
@@ -96,25 +86,8 @@ void Player::update(float dt, const TileMap& map, const BuildingSystem& building
         m_sprite.setPosition(tryY);
     // else — potpuno blokiran, ne pomjera se
 
-    if (m_attackTimer > 0.f) m_attackTimer -= dt;
     if (m_hitFlash > 0.f) m_hitFlash -= dt;
     if (m_iFrames > 0.f) m_iFrames -= dt;
-
-    if (m_swingTimer > 0.f) {
-        m_swingTimer -= dt;
-        m_swingProgress = 1.f - (m_swingTimer / SWING_DURATION);
-    }
-    else {
-        m_swingProgress = 0.f;
-    }
-}
-
-bool Player::tryAttack() {
-    if (m_attackTimer > 0.f) return false;
-    m_attackTimer = ATTACK_CD;
-    m_swingTimer = SWING_DURATION;
-    m_swingProgress = 0.f;
-    return true;
 }
 
 void Player::takeDamage(float dmg) {
@@ -144,64 +117,6 @@ void Player::draw(sf::RenderWindow& window) {
     m_sprite.setPosition({ originalPos.x, originalPos.y - m_jumpHeight });
     window.draw(m_sprite);
     m_sprite.setPosition(originalPos);
-
-    if (m_swingTimer <= 0.f) return;
-
-    sf::Vector2f pos = sf::Vector2f{ originalPos.x, originalPos.y - m_jumpHeight };
-    float        baseAng = getSwingAngle();
-    float        sweepTotal = 200.f;
-    float        startAng = baseAng - 100.f;
-
-    // Velicina i boja po oružju
-    float  outerRange;
-    sf::Color arcBaseCol;
-    switch (m_weapon) {
-    case WeaponType::Sword:
-        outerRange = ATTACK_RANGE;           // puni
-        arcBaseCol = sf::Color(255, 220, 60); // žuta
-        break;
-    case WeaponType::Rod:
-        outerRange = ATTACK_RANGE * 0.65f;   // malo duži od bare
-        arcBaseCol = sf::Color(140, 160, 200); // siva-plava
-        break;
-    case WeaponType::Bare:
-    default:
-        outerRange = ATTACK_RANGE * 0.63f;   // pola od 1.26
-        arcBaseCol = sf::Color(160, 160, 175); // svijetlo siva, vidljiva
-        break;
-    }
-
-    const float INNER = 8.f;
-    const int   SEGMENTS = 16;
-    const float arcStep = sweepTotal / SEGMENTS;
-    float       alpha = (1.f - m_swingProgress) * 200.f;
-
-    sf::VertexArray arc(sf::PrimitiveType::Triangles,
-        static_cast<std::size_t>(SEGMENTS * 3));
-
-    for (int i = 0; i < SEGMENTS; ++i) {
-        float segProgress = static_cast<float>(i) / SEGMENTS;
-        if (segProgress > m_swingProgress) break;
-
-        float a0 = (startAng + arcStep * i) * PI / 180.f;
-        float a1 = (startAng + arcStep * (i + 1)) * PI / 180.f;
-
-        float segAlpha = alpha * (0.3f + 0.7f * segProgress);
-        sf::Color col(arcBaseCol.r, arcBaseCol.g, arcBaseCol.b,
-            static_cast<uint8_t>(std::min(255.f, segAlpha)));
-
-        arc[i * 3 + 0].position = pos + sf::Vector2f{
-            std::cos(a0) * INNER, std::sin(a0) * INNER };
-        arc[i * 3 + 1].position = pos + sf::Vector2f{
-            std::cos(a0) * outerRange, std::sin(a0) * outerRange };
-        arc[i * 3 + 2].position = pos + sf::Vector2f{
-            std::cos(a1) * outerRange, std::sin(a1) * outerRange };
-
-        arc[i * 3 + 0].color = col;
-        arc[i * 3 + 1].color = col;
-        arc[i * 3 + 2].color = col;
-    }
-    window.draw(arc);
 }
 
 bool Player::wouldCollide(sf::Vector2f pos, const TileMap& map) const {

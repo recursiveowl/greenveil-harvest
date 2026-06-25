@@ -7,7 +7,6 @@
 #endif
 
 static constexpr float FIXED_DT = 1.f / 60.f;
-static constexpr float ENEMY_SPAWN_CD = 15.f;
 static constexpr float GAME_HOUR_SPEED_DAY = 1.0f / 60.f;
 static constexpr float GAME_HOUR_SPEED_NIGHT = 1.8f / 60.f;
 
@@ -37,8 +36,7 @@ Game::Game()
 
     // Generiši privremeni world — MainMenu se prikazuje odmah
     m_seed = static_cast<unsigned>(std::time(nullptr));
-    m_biomeMap.generate(256, 256, m_seed);
-    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+    m_tileMap.generate(256, 256, m_seed);
     m_player.setPosition({
         static_cast<float>(128 * TileMap::TILE_SIZE),
         static_cast<float>(128 * TileMap::TILE_SIZE)
@@ -75,7 +73,6 @@ SaveData Game::buildSaveData() {
     sd.xp = m_progression.getXP();
     sd.skillPoints = m_progression.getSkillPoints();
     sd.coins = m_wallet.toSilver();
-    sd.totalKills = m_npcManager.getMissions().getKillCount();
     const auto& skills = m_progression.getSkills();
     for (int i = 0; i < static_cast<int>(SkillType::COUNT); ++i)
         sd.skillLevels[i] = skills[i].level;
@@ -88,7 +85,6 @@ SaveData Game::buildSaveData() {
 }
 
 void Game::applyLoadedData(const SaveData& sd, int slot) {
-    m_combat = CombatSystem{};
     m_farming = FarmingSystem{};
     m_interactTiles = InteractTileManager{};
     m_npcManager = NPCManager{};
@@ -128,7 +124,6 @@ void Game::spawnVillage() {
 
     m_npcManager.spawnNPC(NPCType::Farmer, base + sf::Vector2f{ 160.f,  80.f }, "Marko");
     m_npcManager.spawnNPC(NPCType::Merchant, base + sf::Vector2f{ -120.f,  60.f }, "Ana");
-    m_npcManager.spawnNPC(NPCType::Guard, base + sf::Vector2f{ 200.f, -90.f }, "Boris");
     m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
     m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
     m_interactTiles.add({ InteractTileType::Sign, {129, 128},
@@ -170,15 +165,13 @@ void Game::processEvents() {
                 SaveSystem::deleteSlot(1);
                 SaveSystem::deleteSlot(2);
                 m_seed = static_cast<unsigned>(std::time(nullptr));
-                m_biomeMap.generate(256, 256, m_seed);
-                m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                m_tileMap.generate(256, 256, m_seed);
                 m_bushes.generate(m_tileMap, m_seed);
                 m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                 m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                 m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                 m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                 m_inventory = Inventory{};
-                m_combat = CombatSystem{};
                 m_farming = FarmingSystem{};
                 m_npcManager = NPCManager{};
                 m_interactTiles = InteractTileManager{};
@@ -205,8 +198,7 @@ void Game::processEvents() {
                     SaveData sd{};
                     SaveSystem::load(bestSlot, sd);
                     m_seed = sd.mapSeed;
-                    m_biomeMap.generate(256, 256, m_seed);
-                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                    m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     applyLoadedData(sd, bestSlot);
@@ -214,14 +206,12 @@ void Game::processEvents() {
                 }
                 else {
                     m_seed = static_cast<unsigned>(std::time(nullptr));
-                    m_biomeMap.generate(256, 256, m_seed);
-                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                    m_tileMap.generate(256, 256, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
                     m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
-                    m_combat = CombatSystem{};
                     m_farming = FarmingSystem{};
                     m_npcManager = NPCManager{};
                     m_interactTiles = InteractTileManager{};
@@ -249,9 +239,7 @@ void Game::processEvents() {
                 auto doNew = [&](int slot) {
                     SaveSystem::deleteSlot(slot);
                     m_seed = static_cast<unsigned>(std::time(nullptr));
-                    m_biomeMap.generate(256, 256, m_seed);
-                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
-                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
@@ -264,9 +252,7 @@ void Game::processEvents() {
                 auto doLoad = [&](int slot) {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
-                    m_biomeMap.generate(256, 256, m_seed);
-                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
-                    m_biomeMap.generate(256, 256, m_seed);
+                    m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
@@ -405,8 +391,7 @@ void Game::processEvents() {
                 }
                 if (m_npcManager.isDialogueOpen()) {
                     m_npcManager.advanceDialogue(
-                        m_inventory.countOf(ItemType::Crop),
-                        m_npcManager.getMissions().getKillCount());
+                        m_inventory.countOf(ItemType::Crop), 0);
                     break;
                 }
                 {
@@ -543,8 +528,8 @@ void Game::processEvents() {
                 auto doLoad = [&](int slot) {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
-                    m_biomeMap.generate(256, 256, m_seed);
-                    m_tileMap.generate(256, 256, m_seed, m_biomeMap);
+                    
+                    m_tileMap.generate(256, 256, m_seed);
                     m_bushes.generate(m_tileMap, m_seed);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
@@ -591,8 +576,7 @@ void Game::processEvents() {
             if (click->button == sf::Mouse::Button::Right) {
                 if (m_npcManager.isDialogueOpen()) {
                     m_npcManager.advanceDialogue(
-                        m_inventory.countOf(ItemType::Crop),
-                        m_npcManager.getMissions().getKillCount());
+                        m_inventory.countOf(ItemType::Crop), 0);
                 }
                 else if (m_buildingUI.hasSelected()) {
                     // Desni klik = otkazi build mode
@@ -628,39 +612,6 @@ void Game::processEvents() {
                     if (m_inventory.countOf(def.material) < def.cost)
                         m_buildingUI.clearSelected();
                 }
-                if (m_player.tryAttack()) {
-                    sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
-                        sf::Mouse::getPosition(m_window), m_camera.getView());
-                    sf::Vector2f dir = mouseWorld - m_player.getPosition();
-                    m_player.setFacing(dir);
-
-                    ItemType held = m_inventory.selectedItem();
-                    float dmg = m_progression.getAttackDamage();
-                    float range = Player::ATTACK_RANGE;
-
-                    if (held == ItemType::Sword) {
-                        // Puni damage i range — zuti hitbox ostaje
-                        dmg *= 1.0f;
-                        range *= 1.0f;
-                    }
-                    else if (held == ItemType::FishingRod) {
-                        // Malo duzi od ruke
-                        dmg *= 0.4f;
-                        range *= 0.65f;
-                    }
-                    else {
-                        // Ruke/ostalo — mali sivi hitbox
-                        dmg *= 0.3f;
-                        range *= 0.45f;
-                    }
-
-                    bool killed = m_combat.playerAttack(
-                        m_player.getPosition(),
-                        m_player.getFacing(),
-                        range, dmg);
-                    if (killed)
-                        m_npcManager.getMissions().registerKill();
-                }
             }
         }
 
@@ -693,8 +644,6 @@ void Game::processEvents() {
                 static_cast<float>(moved->position.y) };
             m_inventory.onMouseMoved(mposUI);
         }
-
-
     }
 }
 
@@ -713,7 +662,6 @@ void Game::update(float dt) {
 
     if (m_gameHour >= 24.f) {
         m_gameHour -= 24.f;
-        m_bossSpawnedThisNight = false;
     }
 
     auto ws = m_window.getSize();
@@ -734,8 +682,7 @@ void Game::update(float dt) {
     {
         ItemType held = m_inventory.selectedItem();
         WeaponType wt = WeaponType::Bare;
-        if (held == ItemType::Sword)      wt = WeaponType::Sword;
-        else if (held == ItemType::FishingRod) wt = WeaponType::Rod;
+        if (held == ItemType::FishingRod) wt = WeaponType::Rod;
         m_player.setWeaponType(wt);
     }
 
@@ -760,13 +707,6 @@ void Game::update(float dt) {
         m_progression.addXP(static_cast<int>(caught->rarity * 80.f) + 10);
     }
 
-    float strengthMult = m_dayNight.getEnemyStrengthMult(m_gameHour);
-    m_combat.setStrengthMult(strengthMult);
-    m_combat.update(dt, m_player.getPosition(), m_tileMap);
-
-    int xp = m_combat.pollXPGained();
-    if (xp > 0) m_progression.addXP(xp);
-
     m_npcManager.update(dt, m_gameHour, m_tileMap);
     m_interactTiles.update(m_player.getPosition());
 
@@ -781,33 +721,14 @@ void Game::update(float dt) {
 
     m_npcManager.getMissions().update(
         m_inventory.countOf(ItemType::Crop),
-        m_npcManager.getMissions().getKillCount(),
         m_inventory.countOf(ItemType::Carp) +
         m_inventory.countOf(ItemType::Trout) +
         m_inventory.countOf(ItemType::Salmon) +
         m_inventory.countOf(ItemType::Catfish) +
         m_inventory.countOf(ItemType::GoldenFish));
 
-    float dmg = m_combat.pollPlayerDamage();
-    if (dmg > 0.f && !m_npcManager.isDialogueOpen())
-        m_player.takeDamage(dmg);
-
     if (!m_player.isAlive()) m_gameOver = true;
-
-    m_enemySpawnTimer += dt;
-    if (m_enemySpawnTimer >= ENEMY_SPAWN_CD) {
-        m_enemySpawnTimer = 0.f;
-        bool isNight = m_dayNight.getTimeOfDay(m_gameHour) == TimeOfDay::Night;
-        // Čudovišta se spawna SAMO noću
-        if (isNight) {
-            int r = std::rand() % 3;
-            EnemyType type = r == 0 ? EnemyType::Goblin
-                : r == 1 ? EnemyType::Skeleton
-                : EnemyType::Wolf;
-            m_combat.spawnWave(m_player.getPosition(), 5, type);
-        }
-    }
-} //
+}
 
 void Game::render() {
     if (m_gameState == GameState::MainMenu) {
@@ -826,7 +747,6 @@ void Game::render() {
     m_bushes.draw(m_window);
     m_trees.draw(m_window);
     m_building.draw(m_window);
-    m_combat.draw(m_window);
     m_npcManager.draw(m_window);
     m_player.draw(m_window);
     m_coinPickup.draw(m_window);

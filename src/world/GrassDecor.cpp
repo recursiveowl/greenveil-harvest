@@ -37,17 +37,16 @@ void GrassDecor::generate(const TileMap& map, unsigned seed, const std::unordere
         for (int x = 0; x < map.getWidth(); ++x) {
             if (map.getTile(x, y).type != TileType::Grass) continue;
             if (!allNeighboursGrass(x, y)) continue;
-            float density = getBiomeDef(map.getBiome(x, y)).floraDensity;
             for (int cy = 0; cy < 2; ++cy)
                 for (int cx = 0; cx < 2; ++cx) {
-                    if (spawnChance(rng) >= BASE_CHANCE * density) continue;
-                        m_sprites.push_back({
-                            {
-                                x * 32.f + cx * CELL + cellOffset(rng),
-                                y * 32.f + cy * CELL + cellOffset(rng)
-                            },
-                            frameDist(rng), scaleDist(rng)
-                            });
+                    if (spawnChance(rng) >= BASE_CHANCE) continue;
+                    m_sprites.push_back({
+                        {
+                            x * 32.f + cx * CELL + cellOffset(rng),
+                            y * 32.f + cy * CELL + cellOffset(rng)
+                        },
+                        frameDist(rng), scaleDist(rng)
+                        });
                 }
         }
 

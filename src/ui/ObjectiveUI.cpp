@@ -82,15 +82,6 @@ void ObjectiveUI::draw(sf::RenderWindow& window,
             sf::Color(80, 160, 220), sf::Color(180, 220, 180));
     }
 
-    // Kills progress � od aktivacije questa
-    if (active->requireKills > 0) {
-        int cur = std::min(missions.getQuestKills(), active->requireKills);
-        drawBar("Kills: " + std::to_string(cur) + " / " +
-            std::to_string(active->requireKills),
-            static_cast<float>(cur) / active->requireKills,
-            sf::Color(220, 80, 80), sf::Color(220, 180, 180));
-    }
-
     // Nagrada
     // Format nagrade u silver/gold
     int rs = active->rewardCoins;

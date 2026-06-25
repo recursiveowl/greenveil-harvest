@@ -8,7 +8,6 @@
 #include "entities/Player.h"
 #include "systems/FarmingSystem.h"
 #include "systems/Inventory.h"
-#include "systems/CombatSystem.h"
 #include "systems/NPCManager.h"
 #include "systems/ProgressionSystem.h"
 #include "systems/MarketSystem.h"
@@ -30,7 +29,6 @@
 #include "ui/MainMenu.h"
 #include "ui/PauseMenu.h"
 #include "world/TreeSystem.h"
-#include "world/BiomeMap.h" 
 
 class Game {
 public:
@@ -51,7 +49,6 @@ private:
 
     static constexpr unsigned WINDOW_W = 1280;
     static constexpr unsigned WINDOW_H = 720;
-    static constexpr float    BOSS_SPAWN_HOUR = 0.f;
     unsigned m_windowW{ WINDOW_W };
     unsigned m_windowH{ WINDOW_H };
 
@@ -64,7 +61,6 @@ private:
     Player              m_player;
     FarmingSystem       m_farming;
     Inventory           m_inventory;
-    CombatSystem        m_combat;
     NPCManager          m_npcManager;
     ProgressionSystem   m_progression;
     MarketSystem        m_market;
@@ -84,13 +80,10 @@ private:
     BushSystem          m_bushes;
     PauseMenu           m_pauseMenu;
     TreeSystem          m_trees;
-    BiomeMap            m_biomeMap;
 
-    float               m_enemySpawnTimer{ 0.f };
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
-    bool                m_bossSpawnedThisNight{ false };
     unsigned            m_seed{ 0 };
 
     enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing };

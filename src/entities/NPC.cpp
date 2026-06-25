@@ -31,11 +31,6 @@ NPC::NPC(NPCType type, sf::Vector2f pos, const std::string& name)
             m_schedule.workStartHour = 9.f;
             m_schedule.workEndHour   = 19.f;
             break;
-        case NPCType::Guard:
-            m_color = sf::Color(160, 160, 200);
-            m_schedule.workStartHour = 0.f;
-            m_schedule.workEndHour   = 24.f;
-            break;
         case NPCType::Elder:
             m_color = sf::Color(200, 160, 200);
             m_schedule.workStartHour = 10.f;
@@ -59,11 +54,6 @@ void NPC::loadDialogue() {
             m_dialogues.push_back({"I have rare goods for trade."});
             m_dialogues.push_back({"Bring me 5 crops and I will give you something special.", true, 1});
             break;
-        case NPCType::Guard:
-            m_dialogues.push_back({"Halt! Who goes there?"});
-            m_dialogues.push_back({"These lands are troubled by goblins."});
-            m_dialogues.push_back({"Slay 3 goblins and you will be rewarded.", true, 2});
-            break;
         case NPCType::Elder:
             m_dialogues.push_back({ "My old bones ache... I could use some fresh fish." });
             m_dialogues.push_back({ "The pond nearby is full of them this time of year." });
@@ -86,10 +76,6 @@ void NPC::completeMission(int id, bool alreadyHasFish) {
     case 1:
         m_dialogues.push_back({ "Here are your crops, Ana!" });
         m_dialogues.push_back({ "Perfect timing! The traders will be pleased. Here is your cut." });
-        break;
-    case 2:
-        m_dialogues.push_back({ "Three goblins slain, Boris!" });
-        m_dialogues.push_back({ "Ha! The road is safer already. Well earned, warrior." });
         break;
     case 3:
         if (alreadyHasFish) {

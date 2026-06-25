@@ -39,8 +39,7 @@ void BushSystem::generate(const TileMap& map, unsigned seed) {
                     if (isOccupied(x + dx, y + dy)) ok = false;
             if (!ok) continue;
 
-            float density = getBiomeDef(map.getBiome(x, y)).floraDensity;
-            if (spawnChance(rng) >= BASE_CHANCE * density) continue;
+            if (spawnChance(rng) >= BASE_CHANCE) continue;
 
             m_bushes.push_back({ {x, y}, animOff(rng) });
             m_bushSet.insert(y * 10000 + x);

@@ -5,7 +5,7 @@
 MissionSystem::MissionSystem() {
     auto make = [](int id, int npcId,
         std::string title, std::string objective, std::string desc,
-        int crops, int kills, int rewardSilver, int xp) {
+        int crops, int rewardSilver, int xp) {
             Mission m;
             m.id = id;
             m.npcId = npcId;
@@ -13,7 +13,6 @@ MissionSystem::MissionSystem() {
             m.objective = std::move(objective);
             m.description = std::move(desc);
             m.requireCrops = crops;
-            m.requireKills = kills;
             m.rewardCoins = rewardSilver; // rewardCoins sada drzi silver vrijednost
             m.rewardXP = xp;
             m.status = MissionStatus::Inactive;
@@ -23,24 +22,19 @@ MissionSystem::MissionSystem() {
     // Nagrade u silver:
     // Marko  (farmer)   — 3 crops  → 25s  + 50 XP
     // Ana    (merchant) — 5 crops  → 80s  + 80 XP
-    // Boris  (guard)    — 3 kills  → 120s + 100 XP
-    // Elder  (explore)  — explore  → 200s + 150 XP
+    // Elder  (fish)     — 3 fish   → 200s + 150 XP
     m_missions.push_back(make(0, 0,
         "Hungry Farmer",
         "Collect 3 crops and return to Marko.",
-        "Marko needs 3 crops.", 3, 0, 25, 50));
+        "Marko needs 3 crops.", 3, 25, 50));
     m_missions.push_back(make(1, 1,
         "Trade Deal",
         "Collect 5 crops and return to Ana.",
-        "Ana wants 5 crops for a trade.", 5, 0, 80, 80));
-    m_missions.push_back(make(2, 2,
-        "Goblin Threat",
-        "Slay 3 goblins and return to Boris.",
-        "Boris wants 3 goblins slain.", 0, 3, 120, 100));
-    m_missions.push_back(make(3, 3,
+        "Ana wants 5 crops for a trade.", 5, 80, 80));
+    m_missions.push_back(make(3, 2,
         "Elder's Appetite",
         "Catch 3 fish and return to Elder Vid.",
-        "Elder Vid wants 3 fish.", 3, 0, 200, 150));
+        "Elder Vid wants 3 fish.", 3, 200, 150));
 }
 
 bool MissionSystem::hasActiveMission() const {
@@ -58,7 +52,6 @@ bool MissionSystem::activateMission(int id, int npcId) {
         if (m.id != id || m.status != MissionStatus::Inactive) continue;
         m.status = MissionStatus::Active;
         m.npcId = npcId;
-        m.killsAtActivation = m_totalKills;
         m.cropsAtActivation = m_currentCrops;
 
         if (m.id == 3)
@@ -70,7 +63,7 @@ bool MissionSystem::activateMission(int id, int npcId) {
     return false;
 }
 
-void MissionSystem::update(int totalCrops, int totalKills, int totalFish) {
+void MissionSystem::update(int totalCrops, int totalFish) {
     m_currentCrops = totalCrops;
     m_currentFish = totalFish;
 
@@ -83,10 +76,9 @@ void MissionSystem::update(int totalCrops, int totalKills, int totalFish) {
             continue;
         }
 
-        int killsSince = m_totalKills - m.killsAtActivation;
         int cropsSince = m_currentCrops - m.cropsAtActivation;
 
-        if (cropsSince >= m.requireCrops && killsSince >= m.requireKills)
+        if (cropsSince >= m.requireCrops)
             m.status = MissionStatus::ReadyToTurn;
     }
 }
@@ -104,14 +96,6 @@ float MissionSystem::getExploreProgress() const {
     float w = (m_exploreMax.x - m_exploreMin.x) / 4800.f;
     float h = (m_exploreMax.y - m_exploreMin.y) / 4800.f;
     return std::min(std::min(w, h) / 800.f, 1.f);
-}
-
-int MissionSystem::getQuestKills() const {
-    for (auto& m : m_missions)
-        if ((m.status == MissionStatus::Active ||
-            m.status == MissionStatus::ReadyToTurn) && m.requireKills > 0)
-            return std::max(0, m_totalKills - m.killsAtActivation);
-    return 0;
 }
 
 int MissionSystem::getQuestCrops() const {
@@ -135,8 +119,6 @@ bool MissionSystem::tryTurnIn(int missionId) {
     }
     return false;
 }
-
-void MissionSystem::registerKill() { ++m_totalKills; }
 
 const Mission* MissionSystem::getMission(int id) const {
     for (auto& m : m_missions)

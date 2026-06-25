@@ -1,6 +1,5 @@
 #pragma once
 #include "TileMap.h"
-#include "world/Biome.h"
 #include <unordered_set>
 
 class BushSystem {

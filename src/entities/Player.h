@@ -8,17 +8,13 @@ class TileMap;
 class BuildingSystem;
 
 enum class FacingDir : uint8_t { Down = 0, Up, Left, Right };
-enum class WeaponType : uint8_t { Bare, Rod, Sword };
+enum class WeaponType : uint8_t { Bare, Rod };
 
 class Player {
 public:
     static constexpr float SPEED = 160.f;
     static constexpr float MAX_HP = 100.f;
-    static constexpr float ATTACK_RANGE = 52.f;
-    static constexpr float ATTACK_DMG = 20.f;
-    static constexpr float ATTACK_CD = 0.4f;
     static constexpr float IFRAME_DURATION = 0.6f;
-    static constexpr float SWING_DURATION = 0.18f;
     static constexpr float JUMP_DURATION = 0.45f;
     static constexpr float JUMP_PEAK = 38.f;
     static constexpr float GRAVITY = 1800.f;
@@ -35,18 +31,14 @@ public:
 
     void         setFacing(sf::Vector2f dir);
     void         setWeaponType(WeaponType w) { m_weapon = w; }
-    void         startJump() { if (!m_jumping) { std::uniform_real_distribution<float> var (-80.f, 80.f); m_jumping = true; m_jumpVelocity = JUMP_FORCE; m_jumpHeight = 0.f; } }
+    void         startJump() { if (!m_jumping) { std::uniform_real_distribution<float> var(-80.f, 80.f); m_jumping = true; m_jumpVelocity = JUMP_FORCE; m_jumpHeight = 0.f; } }
     FacingDir    getFacingDir()     const { return m_facing; }
     sf::Vector2f getFacing()        const;
-    float        getSwingAngle()    const;
-    float        getSwingProgress() const { return m_swingProgress; }
 
     sf::Vector2f getPosition() const { return m_sprite.getPosition(); }
     float        getHp()       const { return m_hp; }
     float        getMaxHp()    const { return MAX_HP; }
     bool         isAlive()     const { return m_hp > 0.f; }
-    bool         isAttacking() const { return m_swingTimer > 0.f; }
-    bool         tryAttack();
     bool         isJumping()   const { return m_jumping; }
 
     int getLives() const { return m_lives; }
@@ -58,9 +50,6 @@ private:
     sf::Texture   m_texture;
     sf::Sprite    m_sprite;
     float         m_hp{ MAX_HP };
-    float         m_attackTimer{ 0.f };
-    float         m_swingTimer{ 0.f };
-    float         m_swingProgress{ 0.f };
     float         m_hitFlash{ 0.f };
     float         m_iFrames{ 0.f };
     float         m_jumpHeight{ 0.f };
@@ -68,7 +57,7 @@ private:
     float         m_jumpVelocity{ 0.f };
 
     int           m_lives{ MAX_LIVES };
-    
+
     bool          m_jumping{ false };
 
     std::mt19937 m_rng{ std::random_device{}() };

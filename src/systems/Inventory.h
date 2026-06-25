@@ -10,7 +10,6 @@ enum class ItemType : uint8_t {
     Stone,
     // Equipment
     FishingRod,
-    Sword,
     Hoe,
     // Fish
     Carp,

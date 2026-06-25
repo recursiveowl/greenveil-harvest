@@ -1,26 +1,29 @@
 #include "world/TileMap.h"
-#include "world/BiomeMap.h"
 #include "world/Noise.h"
 #include "core/PlaceholderAssets.h"
 #include <algorithm>
 
 TileMap::TileMap(AssetManager& assets) : m_assets(assets) {
-    for (int b = 0; b < NUM_BIOMES; ++b) {
-        const BiomeDef& def = getBiomeDef(static_cast<BiomeType>(b));
-        for (int t = 0; t < NUM_TILE_TYPES; ++t) {
-            TileLayer& layer = m_layers[layerIndex(static_cast<BiomeType>(b), static_cast<TileType>(t))];
-            if (!layer.texture.loadFromFile(def.tileTexture[t])) {
-                switch (static_cast<TileType>(t)) {
-                case TileType::Grass: layer.texture = PlaceholderAssets::makeGrass(); break;
-                case TileType::Dirt:  layer.texture = PlaceholderAssets::makeDirt();  break;
-                case TileType::Water: layer.texture = PlaceholderAssets::makeWater(); break;
-                case TileType::Sand:  layer.texture = PlaceholderAssets::makeSand();  break;
-                default: break;
-                }
+    static const char* kTileTextures[NUM_TILE_TYPES] = {
+        "assets/textures/plains_grass.png",
+        "assets/textures/plains_dirt.png",
+        "assets/textures/water.png",
+        "assets/textures/plains_sand.png"
+    };
+
+    for (int t = 0; t < NUM_TILE_TYPES; ++t) {
+        TileLayer& layer = m_layers[layerIndex(static_cast<TileType>(t))];
+        if (!layer.texture.loadFromFile(kTileTextures[t])) {
+            switch (static_cast<TileType>(t)) {
+            case TileType::Grass: layer.texture = PlaceholderAssets::makeGrass(); break;
+            case TileType::Dirt:  layer.texture = PlaceholderAssets::makeDirt();  break;
+            case TileType::Water: layer.texture = PlaceholderAssets::makeWater(); break;
+            case TileType::Sand:  layer.texture = PlaceholderAssets::makeSand();  break;
+            default: break;
             }
-            layer.texture.setRepeated(true);
-            layer.texture.setSmooth(false);
         }
+        layer.texture.setRepeated(true);
+        layer.texture.setSmooth(false);
     }
 }
 
@@ -63,17 +66,16 @@ void TileMap::forceWaterRegion(int cx, int cy, int radius) {
         }
 }
 
-void TileMap::generate(int width, int height, unsigned seed, const BiomeMap& biomeMap) {
+void TileMap::generate(int width, int height, unsigned seed) {
     m_width = width;
     m_height = height;
     m_tiles.resize(width * height);
 
-    PerlinNoise noise(seed); // 'moisture' noise uklonjen — bio neiskorišten, BiomeMap to sad radi
+    PerlinNoise noise(seed);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             Tile& t = m_tiles[y * width + x];
-            t.biome = biomeMap.getBiome(x, y);
 
             float w = noise.octave(x * 0.004f, y * 0.004f, 8, 0.55f);
 
@@ -116,7 +118,7 @@ void TileMap::draw(sf::RenderWindow& window) {
     for (int y = startY; y < endY; ++y) {
         for (int x = startX; x < endX; ++x) {
             const Tile& t = m_tiles[y * m_width + x];
-            auto& va = m_layers[layerIndex(t.biome, t.type)].vertices;
+            auto& va = m_layers[layerIndex(t.type)].vertices;
 
             float px = static_cast<float>(x * TILE_SIZE);
             float py = static_cast<float>(y * TILE_SIZE);
