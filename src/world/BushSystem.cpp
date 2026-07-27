@@ -1,7 +1,7 @@
 #include "world/BushSystem.h"
 #include <random>
 
-void BushSystem::generate(const TileMap& map, unsigned seed) {
+void BushSystem::generate(const TileMap& map, unsigned seed, const std::unordered_set<int>& blocked) {
     if (!m_tex.loadFromFile("assets/textures/pl_bush.png"))
         return;
 
@@ -25,21 +25,21 @@ void BushSystem::generate(const TileMap& map, unsigned seed) {
             if (map.getTile(x, y).type != TileType::Grass) continue;
 
             bool ok = true;
-            // Svi susjedi moraju biti Grass
-            for (int dy = -1
-                ; dy <= 1 && ok; ++dy)
+            for (int dy = -1; dy <= 1 && ok; ++dy)
                 for (int dx = -1; dx <= 1 && ok; ++dx)
                     if (map.getTile(x + dx, y + dy).type != TileType::Grass)
                         ok = false;
             if (!ok) continue;
 
-            // Spacing
             for (int dy = -4; dy <= 4 && ok; ++dy)
-                for (int dx = -4; dx <= 4 && ok; ++dx)
+                for (int dx = -4; dx <= 4 && ok; ++dx) {
+                    int key = (y + dy) * 10000 + (x + dx);
+                    if (blocked.count(key)) ok = false;
                     if (isOccupied(x + dx, y + dy)) ok = false;
+                }
             if (!ok) continue;
 
-            if (spawnChance(rng) >= BASE_CHANCE) continue;
+            if (spawnChance(rng) > BASE_CHANCE) continue;
 
             m_bushes.push_back({ {x, y}, animOff(rng) });
             m_bushSet.insert(y * 10000 + x);

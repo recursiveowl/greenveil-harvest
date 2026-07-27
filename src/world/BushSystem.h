@@ -4,7 +4,7 @@
 
 class BushSystem {
 public:
-    void generate(const TileMap& map, unsigned seed);
+    void generate(const TileMap& map, unsigned seed, const std::unordered_set<int>& blocked);
     bool isSolid(sf::Vector2f pos) const;
     bool isInBush(sf::Vector2f pos) const;
     void draw(sf::RenderWindow& window);

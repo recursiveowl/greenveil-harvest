@@ -8,6 +8,8 @@ public:
     void draw(sf::RenderWindow& window, float hp, float maxHp,
         float gameHour, const Wallet& wallet, int currentLives);
 
+    const sf::Font& getFont() const { return m_font; }
+
 private:
     sf::Font    m_font;
     sf::Texture m_goldTex;

@@ -29,6 +29,8 @@
 #include "ui/MainMenu.h"
 #include "ui/PauseMenu.h"
 #include "world/TreeSystem.h"
+#include "world/PlayerHouse.h"
+#include "world/LandmarkSystem.h"
 
 class Game {
 public:
@@ -80,13 +82,15 @@ private:
     BushSystem          m_bushes;
     PauseMenu           m_pauseMenu;
     TreeSystem          m_trees;
+    PlayerHouseSystem   m_playerHouse;
+    LandmarkSystem      m_landmarks;
 
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
     bool                m_gameOver{ false };
     unsigned            m_seed{ 0 };
 
-    enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing };
+    enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing, HouseInterior };
     GameState   m_gameState{ GameState::MainMenu };
     enum class SaveMode { NewGame, Continue };
     SaveMode  m_saveMode{ SaveMode::Continue };
@@ -102,6 +106,8 @@ private:
         return m_interactPrompt.isVisible() ||
             m_npcManager.isDialogueOpen();
     }
+
+    sf::Vector2f m_returnPos{ 0.f, 0.f };
 
 
     bool m_fKeyHeld{ false };

@@ -26,6 +26,10 @@ struct SaveData {
     int  playMinutes{ 0 };
     int  playerLevel{ 1 };
 
+    int  houseTileX{ 0 };
+    int  houseTileY{ 0 };
+    bool houseHasData{ false };
+
     unsigned mapSeed{ 0 };
 
     bool hasData{ false };

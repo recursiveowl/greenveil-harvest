@@ -8,7 +8,7 @@ find_package(SFML 3 REQUIRED COMPONENTS System Window Graphics Audio)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_executable(${PROJECT_NAME} ${SOURCES} "src/pch.h"  "src/ui/MarketUI.h" "src/systems/FishingSystem.h" "src/ui/FishingUI.h" "src/systems/BuildingSystem.h" "src/systems/BuildingSystem.cpp" "src/ui/BuildingUI.h" "src/ui/BuildingUI.cpp" "src/world/CoinPickup.h" "src/world/CoinPickup.cpp" "src/core/UIScale.h" "src/world/InteractTile.h" "src/world/InteractTile.cpp" "src/ui/InteractPrompt.h" "src/ui/InteractPrompt.cpp" "src/world/GrassDecor.h" "src/world/GrassDecor.cpp" "src/world/BushSystem.h" "src/world/BushSystem.cpp" "src/ui/SaveUI.h" "src/ui/SaveUI.cpp" "src/ui/MainMenu.h" "src/ui/MainMenu.cpp" "src/ui/PauseMenu.h" "src/ui/PauseMenu.cpp" "src/world/TreeSystem.h" "src/world/TreeSystem.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES} "src/pch.h"  "src/ui/MarketUI.h" "src/systems/FishingSystem.h" "src/ui/FishingUI.h" "src/systems/BuildingSystem.h" "src/systems/BuildingSystem.cpp" "src/ui/BuildingUI.h" "src/ui/BuildingUI.cpp" "src/world/CoinPickup.h" "src/world/CoinPickup.cpp" "src/core/UIScale.h" "src/world/InteractTile.h" "src/world/InteractTile.cpp" "src/ui/InteractPrompt.h" "src/ui/InteractPrompt.cpp" "src/world/GrassDecor.h" "src/world/GrassDecor.cpp" "src/world/BushSystem.h" "src/world/BushSystem.cpp" "src/ui/SaveUI.h" "src/ui/SaveUI.cpp" "src/ui/MainMenu.h" "src/ui/MainMenu.cpp" "src/ui/PauseMenu.h" "src/ui/PauseMenu.cpp" "src/world/TreeSystem.h" "src/world/TreeSystem.cpp" "src/world/PlayerHouse.h" "src/world/PlayerHouse.cpp" "src/world/LandmarkSystem.h" "src/world/LandmarkSystem.cpp")
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/src"

@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "core/AssetManager.h"
 
-enum class TileType : uint8_t { Grass = 0, Dirt, Water, Sand, COUNT };
+enum class TileType : uint8_t { Grass = 0, Dirt, Water, Sand, Path, COUNT };
 
 struct Tile {
     TileType type = TileType::Grass;
@@ -19,7 +19,8 @@ public:
     void generate(int width, int height, unsigned seed = 42);
     void draw(sf::RenderWindow& window);
     void setTileType(int x, int y, TileType type);
-    void forceWaterRegion(int centerX, int centerY, int radius);
+    void connectLandmarks(const std::vector<sf::Vector2i>& entryPoints,
+        sf::Vector2i marketCenter, unsigned seed, int armWidth = 2);
 
     const Tile& getTile(int x, int y) const;
     Tile& getTileMut(int x, int y);
@@ -27,7 +28,6 @@ public:
     int getHeight() const { return m_height; }
 
 private:
-    bool isNearWater(int x, int y, int radius = 4) const;
     static int layerIndex(TileType t) {
         return static_cast<int>(t);
     }

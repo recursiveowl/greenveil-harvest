@@ -1,5 +1,4 @@
 #include "world/TileMap.h"
-#include "world/Noise.h"
 #include "core/PlaceholderAssets.h"
 #include <algorithm>
 
@@ -8,7 +7,8 @@ TileMap::TileMap(AssetManager& assets) : m_assets(assets) {
         "assets/textures/plains_grass.png",
         "assets/textures/plains_dirt.png",
         "assets/textures/water.png",
-        "assets/textures/plains_sand.png"
+        "assets/textures/plains_sand.png",
+        "assets/textures/plains_path.png"
     };
 
     for (int t = 0; t < NUM_TILE_TYPES; ++t) {
@@ -19,6 +19,7 @@ TileMap::TileMap(AssetManager& assets) : m_assets(assets) {
             case TileType::Dirt:  layer.texture = PlaceholderAssets::makeDirt();  break;
             case TileType::Water: layer.texture = PlaceholderAssets::makeWater(); break;
             case TileType::Sand:  layer.texture = PlaceholderAssets::makeSand();  break;
+            case TileType::Path:  layer.texture = PlaceholderAssets::makePath();  break;
             default: break;
             }
         }
@@ -27,65 +28,71 @@ TileMap::TileMap(AssetManager& assets) : m_assets(assets) {
     }
 }
 
-bool TileMap::isNearWater(int x, int y, int radius) const {
-    for (int dy = -radius; dy <= radius; ++dy)
-        for (int dx = -radius; dx <= radius; ++dx) {
-            int nx = x + dx, ny = y + dy;
-            if (nx < 0 || ny < 0 || nx >= m_width || ny >= m_height) continue;
-            if (m_tiles[ny * m_width + nx].type == TileType::Water) return true;
-        }
-    return false;
-}
-
-void TileMap::forceWaterRegion(int cx, int cy, int radius) {
-    PerlinNoise n(cx * 7 + cy * 13);
-
-    for (int dy = -(radius + 4); dy <= radius + 4; ++dy)
-        for (int dx = -(radius + 4); dx <= radius + 4; ++dx) {
-            int x = cx + dx, y = cy + dy;
-            if (x < 0 || y < 0 || x >= m_width || y >= m_height) continue;
-
-            float distort = n.octave(dx * 0.3f, dy * 0.3f, 3, 0.5f) * 2.f - 1.f;
-            float effectiveR = radius + distort * radius * 0.5f;
-            float d = std::sqrt(static_cast<float>(dx * dx + dy * dy));
-
-            Tile& t = m_tiles[y * m_width + x];
-            if (d < effectiveR) {
-                t.type = TileType::Water;
-                t.solid = true;
-            }
-        }
-
-    for (int dy = -(radius + 6); dy <= radius + 6; ++dy)
-        for (int dx = -(radius + 6); dx <= radius + 6; ++dx) {
-            int x = cx + dx, y = cy + dy;
-            if (x < 0 || y < 0 || x >= m_width || y >= m_height) continue;
-            if (m_tiles[y * m_width + x].type != TileType::Water)
-                if (isNearWater(x, y, 2))
-                    m_tiles[y * m_width + x].type = TileType::Sand;
-        }
-}
-
 void TileMap::generate(int width, int height, unsigned seed) {
     m_width = width;
     m_height = height;
     m_tiles.resize(width * height);
 
-    PerlinNoise noise(seed);
+    (void)seed; // seed se trenutno ne koristi - teren je fiksno Grass
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             Tile& t = m_tiles[y * width + x];
-
-            float w = noise.octave(x * 0.004f, y * 0.004f, 8, 0.55f);
-
-            TileType type = TileType::Grass;
-            if (w > 0.68f)                   type = TileType::Water;
-            else if (isNearWater(x, y, 2))    type = TileType::Sand;
-
-            t.type = type;
-            t.solid = (type == TileType::Water);
+            t.type = TileType::Grass;
+            t.solid = false;
             t.fertile = false;
+        }
+    }
+}
+
+void TileMap::connectLandmarks(const std::vector<sf::Vector2i>& entryPoints,
+    sf::Vector2i marketCenter, unsigned seed, int armWidth) {
+
+    (void)seed; (void)armWidth; // vise se ne koriste
+
+    for (const auto& entry : entryPoints) {
+        // Pomjeri pocetnu tacku 4 tila dalje od slota (prema marketu)
+        sf::Vector2i current = entry;
+        sf::Vector2i target = marketCenter;
+
+        int dx = target.x - current.x;
+        int dy = target.y - current.y;
+        float len = std::sqrt(static_cast<float>(dx * dx + dy * dy));
+        if (len > 0.f) {
+            current.x += static_cast<int>(dx / len * 4.f);
+            current.y += static_cast<int>(dy / len * 4.f);
+        }
+
+        // Ravna linija od current do target, 1 tile sirina
+        constexpr int MAX_STEPS = 2048;
+        int steps = 0;
+
+        while (steps < MAX_STEPS) {
+            ++steps;
+
+            dx = target.x - current.x;
+            dy = target.y - current.y;
+            if (std::abs(dx) <= 1 && std::abs(dy) <= 1) break;
+
+            if (current.x >= 0 && current.y >= 0 &&
+                current.x < m_width && current.y < m_height) {
+                Tile& t = m_tiles[current.y * m_width + current.x];
+                t.type = TileType::Path;
+                t.solid = false;
+            }
+
+            if (std::abs(dy) >= std::abs(dx))
+                current.y += (dy > 0) ? 1 : -1;
+            else
+                current.x += (dx > 0) ? 1 : -1;
+        }
+
+        // Garantuj spajanje sa market centrom
+        if (target.x >= 0 && target.y >= 0 &&
+            target.x < m_width && target.y < m_height) {
+            Tile& t = m_tiles[target.y * m_width + target.x];
+            t.type = TileType::Path;
+            t.solid = false;
         }
     }
 }
@@ -95,7 +102,7 @@ void TileMap::setTileType(int x, int y, TileType type) {
     Tile& t = m_tiles[y * m_width + x];
     t.type = type;
     t.solid = (type == TileType::Water);
-    t.fertile = (type == TileType::Dirt && isNearWater(x, y, 4));
+    t.fertile = false;
 }
 
 void TileMap::draw(sf::RenderWindow& window) {

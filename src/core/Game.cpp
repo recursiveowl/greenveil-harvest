@@ -33,16 +33,35 @@ Game::Game()
         SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
     }
 #endif
-
-    // Generiši privremeni world — MainMenu se prikazuje odmah
     m_seed = static_cast<unsigned>(std::time(nullptr));
     m_tileMap.generate(256, 256, m_seed);
-    m_player.setPosition({
-        static_cast<float>(128 * TileMap::TILE_SIZE),
-        static_cast<float>(128 * TileMap::TILE_SIZE)
-        });
-    m_bushes.generate(m_tileMap, m_seed);
-    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+    m_landmarks.assignRoles(m_seed, 3);
+    {
+        std::vector<sf::Vector2i> entries;
+        for (const auto& slot : m_landmarks.getSlots())
+            entries.push_back({
+                slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+        sf::Vector2i mCenter = {
+            m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+            m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+        m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+    }
+    {
+        sf::Vector2i slotPos = m_landmarks.getPlayerSlotPos();
+        m_playerHouse.setTilePos(slotPos);
+        m_player.setPosition({
+            static_cast<float>((slotPos.x + LandmarkSystem::SLOT_WIDTH / 2) * TileMap::TILE_SIZE),
+            static_cast<float>((slotPos.y + LandmarkSystem::SLOT_HEIGHT + 2) * TileMap::TILE_SIZE) });
+    }
+
+    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+    std::unordered_set<int> treeBlocked = m_bushes.getTileSet();
+    auto houseSet = m_playerHouse.getOccupiedTileSet();
+    treeBlocked.insert(houseSet.begin(), houseSet.end());
+    m_trees.generate(m_tileMap, m_seed, treeBlocked);
+
     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
     m_camera.snapTo(m_player.getPosition());
 
@@ -69,6 +88,9 @@ SaveData Game::buildSaveData() {
     sd.playerY = m_player.getPosition().y;
     sd.playerHp = m_player.getHp();
     sd.gameHour = m_gameHour;
+    sd.houseHasData = m_playerHouse.hasHouse();
+    sd.houseTileX = m_playerHouse.getTilePos().x;
+    sd.houseTileY = m_playerHouse.getTilePos().y;
     sd.level = m_progression.getLevel();
     sd.xp = m_progression.getXP();
     sd.skillPoints = m_progression.getSkillPoints();
@@ -94,6 +116,12 @@ void Game::applyLoadedData(const SaveData& sd, int slot) {
     m_playSeconds = 0.f;
 
     m_player.setPosition({ sd.playerX, sd.playerY });
+
+    if (sd.houseHasData)
+        m_playerHouse.setTilePos({ sd.houseTileX, sd.houseTileY });
+    else
+        m_playerHouse.setTilePos(m_landmarks.getPlayerSlotPos());
+
     m_gameHour = sd.gameHour;
     m_wallet = Wallet{};
     m_wallet.addSilver(sd.coins);
@@ -122,20 +150,27 @@ void Game::loadGame() {
 void Game::spawnVillage() {
     sf::Vector2f base = m_player.getPosition();
 
-    m_npcManager.spawnNPC(NPCType::Farmer, base + sf::Vector2f{ 160.f,  80.f }, "Marko");
-    m_npcManager.spawnNPC(NPCType::Merchant, base + sf::Vector2f{ -120.f,  60.f }, "Ana");
-    m_npcManager.spawnNPC(NPCType::Elder, base + sf::Vector2f{ -80.f,-140.f }, "Elder Vid");
+    auto npcWorldPos = [&](int npcIndex) {
+        sf::Vector2i tp = m_landmarks.getNPCSlotPos(npcIndex);
+        return sf::Vector2f{
+            static_cast<float>(tp.x * TileMap::TILE_SIZE),
+            static_cast<float>(tp.y * TileMap::TILE_SIZE) };
+        };
+
+    m_npcManager.spawnNPC(NPCType::Farmer, npcWorldPos(0), "Marko");
+    m_npcManager.spawnNPC(NPCType::Merchant, npcWorldPos(1), "Ana");
+    m_npcManager.spawnNPC(NPCType::Elder, npcWorldPos(2), "Elder Vid");
     m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
     m_interactTiles.add({ InteractTileType::Sign, {129, 128},
         "Village Entrance", "Welcome to Greenveil.", false, false });
 
-    int baseTX = static_cast<int>(base.x) / TileMap::TILE_SIZE;
-    int baseTY = static_cast<int>(base.y) / TileMap::TILE_SIZE;
-    float angle = static_cast<float>(std::rand() % 360) * 3.14159f / 180.f;
-    int dist = 50 + std::rand() % 26;
-    int lakeX = baseTX + static_cast<int>(std::cos(angle) * dist);
-    int lakeY = baseTY + static_cast<int>(std::sin(angle) * dist);
-    m_tileMap.forceWaterRegion(lakeX, lakeY, 4 + std::rand() % 5);
+    for (const auto& slot : m_landmarks.getSlots()) {
+        if (slot.role != LandmarkRole::ForSale) continue;
+        m_interactTiles.add({ InteractTileType::Sign,
+            { slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+              slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT / 2 },
+            "For Sale", "This ranch parcel is available for purchase.", false, false });
+    }
 }
 
 void Game::run() {
@@ -166,10 +201,34 @@ void Game::processEvents() {
                 SaveSystem::deleteSlot(2);
                 m_seed = static_cast<unsigned>(std::time(nullptr));
                 m_tileMap.generate(256, 256, m_seed);
-                m_bushes.generate(m_tileMap, m_seed);
-                m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+                m_landmarks.assignRoles(m_seed, 3);
+                {
+                    std::vector<sf::Vector2i> entries;
+                    for (const auto& slot : m_landmarks.getSlots())
+                        entries.push_back({
+                            slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                            slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+                    sf::Vector2i mCenter = {
+                        m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+                        m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+                    m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+                }
+                {
+                    sf::Vector2i slotPos = m_landmarks.getPlayerSlotPos();
+                    m_playerHouse.setTilePos(slotPos);
+                    m_player.setPosition({
+                        static_cast<float>((slotPos.x + LandmarkSystem::SLOT_WIDTH / 2) * TileMap::TILE_SIZE),
+                        static_cast<float>((slotPos.y + LandmarkSystem::SLOT_HEIGHT + 2) * TileMap::TILE_SIZE) });
+                }
+
+                m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                std::unordered_set<int> treeBlocked = m_bushes.getTileSet();
+                auto houseSet = m_playerHouse.getOccupiedTileSet();
+                treeBlocked.insert(houseSet.begin(), houseSet.end());
+                m_trees.generate(m_tileMap, m_seed, treeBlocked);
+
                 m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
-                m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                 m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                 m_inventory = Inventory{};
                 m_farming = FarmingSystem{};
@@ -199,17 +258,54 @@ void Game::processEvents() {
                     SaveSystem::load(bestSlot, sd);
                     m_seed = sd.mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
-                    m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_landmarks.assignRoles(m_seed, 3);
+                    {
+                        std::vector<sf::Vector2i> entries;
+                        for (const auto& slot : m_landmarks.getSlots())
+                            entries.push_back({
+                                slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                                slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+                        sf::Vector2i mCenter = {
+                            m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+                            m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+                        m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+                    }
+
                     applyLoadedData(sd, bestSlot);
+
+                    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                    std::unordered_set<int> treeBlocked2 = m_bushes.getTileSet();
+                    {
+                        auto houseSet = m_playerHouse.getOccupiedTileSet();
+                        treeBlocked2.insert(houseSet.begin(), houseSet.end());
+                    }
+                    m_trees.generate(m_tileMap, m_seed, treeBlocked2);
+
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_gameState = GameState::Playing;
                 }
                 else {
                     m_seed = static_cast<unsigned>(std::time(nullptr));
                     m_tileMap.generate(256, 256, m_seed);
+                    m_landmarks.assignRoles(m_seed, 3);
+                    {
+                        sf::Vector2i slotPos = m_landmarks.getPlayerSlotPos();
+                        m_playerHouse.setTilePos(slotPos);
+                        m_player.setPosition({
+                            static_cast<float>((slotPos.x + LandmarkSystem::SLOT_WIDTH / 2) * TileMap::TILE_SIZE),
+                            static_cast<float>((slotPos.y + LandmarkSystem::SLOT_HEIGHT + 2) * TileMap::TILE_SIZE) });
+                    }
+
+                    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                    std::unordered_set<int> treeBlocked3 = m_bushes.getTileSet();
+                    {
+                        auto houseSet = m_playerHouse.getOccupiedTileSet();
+                        treeBlocked3.insert(houseSet.begin(), houseSet.end());
+                    }
+                    m_trees.generate(m_tileMap, m_seed, treeBlocked3);
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
-                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
-                    m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
                     m_farming = FarmingSystem{};
@@ -240,10 +336,36 @@ void Game::processEvents() {
                     SaveSystem::deleteSlot(slot);
                     m_seed = static_cast<unsigned>(std::time(nullptr));
                     m_tileMap.generate(256, 256, m_seed);
-                    m_bushes.generate(m_tileMap, m_seed);
+                    m_landmarks.assignRoles(m_seed, 3);
+                    {
+                        std::vector<sf::Vector2i> entries;
+                        for (const auto& slot : m_landmarks.getSlots())
+                            entries.push_back({
+                                slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                                slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+                        sf::Vector2i mCenter = {
+                            m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+                            m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+                        m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+                    }
+                    {
+                        sf::Vector2i slotPos = m_landmarks.getPlayerSlotPos();
+                        m_playerHouse.setTilePos(slotPos);
+                        m_player.setPosition({
+                            static_cast<float>((slotPos.x + LandmarkSystem::SLOT_WIDTH / 2) * TileMap::TILE_SIZE),
+                            static_cast<float>((slotPos.y + LandmarkSystem::SLOT_HEIGHT + 2) * TileMap::TILE_SIZE) });
+                    }
+
+                    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                    std::unordered_set<int> treeBlocked4 = m_bushes.getTileSet();
+                    {
+                        auto houseSet = m_playerHouse.getOccupiedTileSet();
+                        treeBlocked4.insert(houseSet.begin(), houseSet.end());
+                    }
+                    m_trees.generate(m_tileMap, m_seed, treeBlocked4);
+
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
-                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
-                    m_player.setPosition({ 128.f * TileMap::TILE_SIZE, 128.f * TileMap::TILE_SIZE });
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
                     spawnVillage();
@@ -253,10 +375,31 @@ void Game::processEvents() {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
                     m_tileMap.generate(256, 256, m_seed);
-                    m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
-                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+                    m_landmarks.assignRoles(m_seed, 3);
+                    {
+                        std::vector<sf::Vector2i> entries;
+                        for (const auto& slot : m_landmarks.getSlots())
+                            entries.push_back({
+                                slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                                slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+                        sf::Vector2i mCenter = {
+                            m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+                            m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+                        m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+                    }
+
                     applyLoadedData(m_slotPreviews[slot], slot);
+
+                    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                    std::unordered_set<int> treeBlocked5 = m_bushes.getTileSet();
+                    {
+                        auto houseSet = m_playerHouse.getOccupiedTileSet();
+                        treeBlocked5.insert(houseSet.begin(), houseSet.end());
+                    }
+                    m_trees.generate(m_tileMap, m_seed, treeBlocked5);
+
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_gameState = GameState::Playing;
                     };
                 auto doDelete = [&](int slot) {
@@ -348,6 +491,12 @@ void Game::processEvents() {
             else {
                 switch (k->code) {
             case sf::Keyboard::Key::Escape:
+                if (m_gameState == GameState::HouseInterior) {
+                    m_gameState = GameState::Playing;
+                    m_player.setPosition(m_returnPos);
+                    m_camera.snapTo(m_player.getPosition());
+                    break;
+                }
                 if (m_interactPrompt.isVisible()) { m_interactPrompt.hide(); break; }
                 if (m_npcManager.isDialogueOpen()) { m_npcManager.closeDialogue(); break; }
                 if (m_buildingUI.isOpen()) { m_buildingUI.close(); break; }
@@ -386,6 +535,22 @@ void Game::processEvents() {
             case sf::Keyboard::Key::F:
                 if (m_fKeyHeld) break;
                 m_fKeyHeld = true;
+
+                if (m_gameState == GameState::HouseInterior) {
+                    m_gameState = GameState::Playing;
+                    m_player.setPosition(m_returnPos);
+                    m_camera.snapTo(m_player.getPosition());
+                    break;
+                }
+
+                if (m_gameState == GameState::Playing &&
+                    m_playerHouse.isNearDoor(m_player.getPosition())) {
+                    m_returnPos = m_player.getPosition();
+                    m_gameState = GameState::HouseInterior;
+                    m_player.setPosition(m_playerHouse.getInteriorSpawnPos());
+                    m_camera.snapTo(m_player.getPosition());
+                    break;
+                }
                 if (m_interactPrompt.isVisible()) {
                     m_interactPrompt.hide(); break;
                 }
@@ -447,7 +612,7 @@ void Game::processEvents() {
                 m_bKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen()) {
                     if (m_buildingUI.isOpen()) {
-                        m_buildingUI.close(); //Escape
+                        m_buildingUI.close();
                     }
                     else {
                         if (m_marketUI.isOpen())  m_marketUI.close();
@@ -475,7 +640,6 @@ void Game::processEvents() {
             case sf::Keyboard::Key::Num3: m_inventory.selectedSlot = 2; break;
             case sf::Keyboard::Key::Num4: m_inventory.selectedSlot = 3; break;
             case sf::Keyboard::Key::Num5: m_inventory.selectedSlot = 4; break;
-                // Num6-Num0 rezervisani za buduce hotbar prosirenje
             default: break;
             }
         }
@@ -528,12 +692,33 @@ void Game::processEvents() {
                 auto doLoad = [&](int slot) {
                     m_currentSlot = slot;
                     m_seed = m_slotPreviews[slot].mapSeed;
-                    
+
                     m_tileMap.generate(256, 256, m_seed);
-                    m_bushes.generate(m_tileMap, m_seed);
-                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
-                    m_trees.generate(m_tileMap, m_seed, m_bushes.getTileSet());
+                    m_landmarks.assignRoles(m_seed, 3);
+                    {
+                        std::vector<sf::Vector2i> entries;
+                        for (const auto& slot : m_landmarks.getSlots())
+                            entries.push_back({
+                                slot.tilePos.x + LandmarkSystem::SLOT_WIDTH / 2,
+                                slot.tilePos.y + LandmarkSystem::SLOT_HEIGHT });
+                        sf::Vector2i mCenter = {
+                            m_landmarks.getMarketPos().x + m_landmarks.getMarketSize().x / 2,
+                            m_landmarks.getMarketPos().y + m_landmarks.getMarketSize().y / 2 };
+                        m_tileMap.connectLandmarks(entries, mCenter, m_seed);
+                    }
+
                     applyLoadedData(m_slotPreviews[slot], slot);
+
+                    m_bushes.generate(m_tileMap, m_seed, m_playerHouse.getOccupiedTileSet());
+
+                    std::unordered_set<int> treeBlocked6 = m_bushes.getTileSet();
+                    {
+                        auto houseSet = m_playerHouse.getOccupiedTileSet();
+                        treeBlocked6.insert(houseSet.begin(), houseSet.end());
+                    }
+                    m_trees.generate(m_tileMap, m_seed, treeBlocked6);
+
+                    m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
                     m_gameState = GameState::Playing;
                     };
                 auto doDelete = [&](int slot) {
@@ -579,18 +764,15 @@ void Game::processEvents() {
                         m_inventory.countOf(ItemType::Crop), 0);
                 }
                 else if (m_buildingUI.hasSelected()) {
-                    // Desni klik = otkazi build mode
                     m_buildingUI.clearSelected();
                 }
                 else {
-                    // Desni klik = unisti zgradu
                     sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
                         sf::Mouse::getPosition(m_window), m_camera.getView());
                     m_building.tryDestroy(mouseWorld, m_inventory);
                 }
             }
             if (click->button == sf::Mouse::Button::Left) {
-                // Inventory drag — hotbar uvijek, backpack ako je otvoren
                 sf::Vector2f mposUI = {
                     static_cast<float>(click->position.x),
                     static_cast<float>(click->position.y) };
@@ -599,7 +781,6 @@ void Game::processEvents() {
             }
             if (click->button == sf::Mouse::Button::Left &&
                 !m_npcManager.isDialogueOpen()) {
-                // Building placement
                 if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {
                     sf::Vector2f mouseWorld = m_window.mapPixelToCoords(
                         sf::Mouse::getPosition(m_window), m_camera.getView());
@@ -607,7 +788,6 @@ void Game::processEvents() {
                     int ty = static_cast<int>(mouseWorld.y) / TileMap::TILE_SIZE;
                     m_building.tryPlace(m_buildingUI.getSelected(),
                         { tx, ty }, m_inventory, m_tileMap);
-                    // Provjeri je li ostalo materijala
                     const auto& def = m_building.getDef(m_buildingUI.getSelected());
                     if (m_inventory.countOf(def.material) < def.cost)
                         m_buildingUI.clearSelected();
@@ -655,6 +835,23 @@ void Game::update(float dt) {
     if (m_gameState == GameState::Playing)
         m_playSeconds += dt;
 
+    if (m_gameState == GameState::HouseInterior) {
+        sf::Vector2f vel{ 0.f, 0.f };
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) vel.y -= Player::SPEED;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) vel.y += Player::SPEED;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) vel.x -= Player::SPEED;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) vel.x += Player::SPEED;
+        if (vel.x != 0.f && vel.y != 0.f) { vel.x *= 0.7071f; vel.y *= 0.7071f; }
+
+        sf::Vector2f cur = m_player.getPosition();
+        sf::Vector2f next = cur + vel * dt;
+        if (m_playerHouse.isWithinInteriorBounds(next))
+            m_player.setPosition(next);
+
+        m_camera.snapTo(m_player.getPosition());
+        return;
+    }
+
     m_prevHour = m_gameHour;
     bool  isNightTime = (m_gameHour >= 21.f || m_gameHour < 6.f);
     float hourSpeed = isNightTime ? GAME_HOUR_SPEED_NIGHT : GAME_HOUR_SPEED_DAY;
@@ -676,9 +873,8 @@ void Game::update(float dt) {
     while (m_progression.levelUp()) {}
 
     if (!m_npcManager.isDialogueOpen())
-        m_player.update(dt, m_tileMap, m_building, m_bushes, m_trees);
+        m_player.update(dt, m_tileMap, m_building, m_bushes, m_trees, m_playerHouse);
 
-    // Sinhroniziraj weapon type sa selektovanim itemom
     {
         ItemType held = m_inventory.selectedItem();
         WeaponType wt = WeaponType::Bare;
@@ -692,7 +888,6 @@ void Game::update(float dt) {
     m_market.update(dt, m_gameHour);
     m_marketUI.update(dt, m_gameHour, m_market);
 
-    // Fishing update
     m_fishing.update(dt, m_player.getPosition(), m_tileMap);
 
     m_coinPickup.update(m_player.getPosition());
@@ -700,7 +895,6 @@ void Game::update(float dt) {
     if (coins > 0) m_wallet.addSilver(coins);
 
 
-    // Poll uhvacene ribe
     const FishDef* caught = m_fishing.pollCatch();
     if (caught) {
         m_inventory.addItem(caught->type, 1);
@@ -738,6 +932,25 @@ void Game::render() {
         return;
     }
 
+    if (m_gameState == GameState::HouseInterior) {
+        m_window.clear(sf::Color::Black);
+
+        m_camera.apply(m_window);
+        m_playerHouse.drawInterior(m_window);
+        m_player.draw(m_window);
+
+        m_camera.applyUI(m_window);
+        sf::Text hint(m_hud.getFont(), "[ ESC / F ] Exit House", 16);
+        hint.setFillColor(sf::Color(220, 210, 180));
+        sf::Vector2u ws = m_window.getSize();
+        auto tb = hint.getLocalBounds();
+        hint.setPosition({ (ws.x - tb.size.x) * 0.5f, ws.y - 40.f });
+        m_window.draw(hint);
+
+        m_window.display();
+        return;
+    }
+
     m_window.clear(sf::Color(20, 20, 20));
 
     m_camera.apply(m_window);
@@ -747,6 +960,8 @@ void Game::render() {
     m_bushes.draw(m_window);
     m_trees.draw(m_window);
     m_building.draw(m_window);
+    m_playerHouse.draw(m_window);
+    m_landmarks.drawMarketPlaceholder(m_window);
     m_npcManager.draw(m_window);
     m_player.draw(m_window);
     m_coinPickup.draw(m_window);
@@ -779,7 +994,7 @@ void Game::render() {
     if (!m_anyUIOpen()) {
         m_inventory.draw(m_window);
         m_hud.draw(m_window, m_player.getHp(),
-            m_player.getMaxHp(), m_gameHour, m_wallet, m_player.getLives()); //m_bushes.generate(
+            m_player.getMaxHp(), m_gameHour, m_wallet, m_player.getLives());
         bool canFish = m_fishing.canFish(m_player.getPosition(),
             m_tileMap, m_inventory);
         m_fishingUI.draw(m_window, m_fishing, canFish);

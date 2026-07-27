@@ -6,6 +6,7 @@
 
 class TileMap;
 class BuildingSystem;
+class PlayerHouseSystem;
 
 enum class FacingDir : uint8_t { Down = 0, Up, Left, Right };
 enum class WeaponType : uint8_t { Bare, Rod };
@@ -25,7 +26,7 @@ public:
 
     explicit Player(AssetManager& assets);
     void setPosition(sf::Vector2f pos);
-    void update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees);
+    void update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees, const PlayerHouseSystem& house);
     void draw(sf::RenderWindow& window);
     void takeDamage(float dmg);
 

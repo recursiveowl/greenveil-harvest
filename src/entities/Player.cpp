@@ -3,6 +3,7 @@
 #include "systems/BuildingSystem.h"
 #include "core/PlaceholderAssets.h"
 #include "world/BushSystem.h"
+#include "world/PlayerHouse.h"
 #include <cmath>
 
 static constexpr float PI = 3.14159265f;
@@ -36,7 +37,7 @@ sf::Vector2f Player::getFacing() const {
     return { 0.f, 1.f };
 }
 
-void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees) {
+void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees, const PlayerHouseSystem& house) {
     float speed = SPEED;
     if (bushes.isInBush(m_sprite.getPosition()))
         speed *= 0.45f;
@@ -75,8 +76,8 @@ void Player::update(float dt, const TileMap& map, const BuildingSystem& building
     sf::Vector2f tryX = { newPos.x, cur.y };
     sf::Vector2f tryY = { cur.x,    newPos.y };
 
-    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX);
-    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY);
+    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX) || house.isSolid(tryX);
+    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY) || house.isSolid(tryY);
 
     if (!blockX && !blockY)
         m_sprite.setPosition(newPos);
