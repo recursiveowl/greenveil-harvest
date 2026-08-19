@@ -19,6 +19,7 @@ public:
     bool isSolid(sf::Vector2f worldPos) const;
     bool hasHouse() const { return m_house.placed; }
     sf::Vector2i getTilePos() const { return m_house.tilePos; }
+    sf::Vector2i getSize() const { return m_house.size; }
 
     sf::Texture m_tex;       // house.png (exterior)
     sf::Texture m_texInt;    // house_int.png (interior)

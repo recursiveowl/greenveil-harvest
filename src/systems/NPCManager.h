@@ -3,6 +3,7 @@
 #include "entities/NPC.h"
 #include "systems/MissionSystem.h"
 #include "ui/DialogueBox.h"
+#include "core/RenderQueue.h"
 
 class NPCManager {
 public:
@@ -10,7 +11,8 @@ public:
 
     void spawnNPC(NPCType type, sf::Vector2f pos, const std::string& name);
     void update(float dt, float gameHour, const TileMap& map);
-    void draw(sf::RenderWindow& window);
+    void collectRenderItems(std::vector<RenderItem>& out);
+    void drawDebugRanges(sf::RenderWindow& window) const;
     void drawUI(sf::RenderWindow& window);
 
     bool tryInteract(sf::Vector2f playerPos, float gameHour);

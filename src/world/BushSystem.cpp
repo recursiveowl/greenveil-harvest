@@ -58,20 +58,35 @@ bool BushSystem::isInBush(sf::Vector2f pos) const {
 }
 
 bool BushSystem::isSolid(sf::Vector2f pos) const {
-    return isInBush(pos);
+    // Žbun je sada potpuno lockovan — cijeli vizuelni sprite blokira igrača
+    for (auto& b : m_bushes) {
+        float bx = b.tilePos.x * 32.f - 16.f;
+        float by = b.tilePos.y * 32.f - 28.8f;
+        float w = 44.8f, h = 44.8f; // = 16px tekstura * 2.8 scale, poklapa se sa draw()
+        if (pos.x >= bx && pos.x <= bx + w &&
+            pos.y >= by && pos.y <= by + h)
+            return true;
+    }
+    return false;
 }
 
-void BushSystem::draw(sf::RenderWindow& window) {
+void BushSystem::drawBush(sf::RenderWindow& window, const Bush& b) const {
     float ts = static_cast<float>(TileMap::TILE_SIZE);
     float t = m_clock.getElapsedTime().asSeconds();
+    float wobble = std::sin(t * 1.5f + b.animOffset) * 2.f;
     sf::Sprite sprite(m_tex);
     sprite.setScale({ 2.8f, 2.8f });
-    for (auto& b : m_bushes) {
-        float wobble = std::sin(t * 1.5f + b.animOffset) * 2.f;
-        sprite.setPosition({
-            b.tilePos.x * ts - ts * 0.5f,
-            b.tilePos.y * ts - ts * 0.9f
-            });
-        window.draw(sprite);
+    sprite.setPosition({
+        b.tilePos.x * ts - ts * 0.5f,
+        b.tilePos.y * ts - ts * 0.9f
+        });
+    window.draw(sprite);
+}
+
+void BushSystem::collectRenderItems(std::vector<RenderItem>& out) const {
+    float ts = static_cast<float>(TileMap::TILE_SIZE);
+    for (const auto& b : m_bushes) {
+        float sortY = b.tilePos.y * ts; // ista tačka kao kolizija (baza žbuna)
+        out.push_back({ sortY, [this, &b](sf::RenderWindow& w) { drawBush(w, b); } });
     }
 }

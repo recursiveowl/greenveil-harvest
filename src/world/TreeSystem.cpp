@@ -38,31 +38,33 @@ void TreeSystem::generate(const TileMap& map, unsigned seed, const std::unordere
 }
 
 bool TreeSystem::isSolid(sf::Vector2f pos) const {
+    // Samo panj ima koliziju — krošnja (lišće) je čisto vizuelna
+    constexpr float TRUNK_W = 36.f;
+    constexpr float TRUNK_H = 40.f; // ranije 18.f — povećano po tvom zahtjevu, lako podesivo ovdje
+
     for (auto& t : m_trees) {
-        float tx = t.tilePos.x * 32.f + 8.f;
-        float ty = t.tilePos.y * 32.f - 64.f;
-        float w = 16.f, h = 76.f;
-        // Krošnja — oval
-        float cx = t.tilePos.x * 32.f + 16.f;  // centar krošnje X
-        float cy = t.tilePos.y * 32.f - 80.f;  // centar krošnje Y
-        float rx = 42.f, ry = 48.f;
-        float dx = (pos.x - cx) / rx;
-        float dy = (pos.y - cy) / ry;
-        if (dx * dx + dy * dy <= 1.f) return true;
-        if (pos.x >= tx && pos.x <= tx + w &&
-            pos.y >= ty && pos.y <= ty + h)
+        float tx = t.tilePos.x * 32.f - 2.f;
+        float ty = t.tilePos.y * 32.f - TRUNK_H;
+        if (pos.x >= tx && pos.x <= tx + TRUNK_W &&
+            pos.y >= ty && pos.y <= ty + TRUNK_H)
             return true;
     }
     return false;
 }
 
-void TreeSystem::draw(sf::RenderWindow& window) {
-    sf::Sprite sprite(m_tex);
+void TreeSystem::drawTree(sf::RenderWindow& window, const Tree& t) const {
     float ts = (float)TileMap::TILE_SIZE;
-    for (auto& t : m_trees) {
-        sprite.setScale({ 3.f, 3.f });
-        sprite.setOrigin({ 16.f, 48.f }); 
-        sprite.setPosition({ t.tilePos.x * ts + 16.f, t.tilePos.y * ts });
-        window.draw(sprite);
+    sf::Sprite sprite(m_tex);
+    sprite.setScale({ 3.f, 3.f });
+    sprite.setOrigin({ 16.f, 48.f });
+    sprite.setPosition({ t.tilePos.x * ts + 16.f, t.tilePos.y * ts });
+    window.draw(sprite);
+}
+
+void TreeSystem::collectRenderItems(std::vector<RenderItem>& out) const {
+    float ts = (float)TileMap::TILE_SIZE;
+    for (const auto& t : m_trees) {
+        float sortY = t.tilePos.y * ts; // ista tačka kao "Depth Sorting Origin" sa slike
+        out.push_back({ sortY, [this, &t](sf::RenderWindow& w) { drawTree(w, t); } });
     }
 }

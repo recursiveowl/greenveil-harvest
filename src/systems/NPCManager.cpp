@@ -17,10 +17,14 @@ void NPCManager::update(float dt, float gameHour, const TileMap& map) {
         npc.update(dt, gameHour, map);
 }
 
-void NPCManager::draw(sf::RenderWindow& window) {
-    for (auto& npc : m_npcs)
-        npc.draw(window);
+void NPCManager::collectRenderItems(std::vector<RenderItem>& out) {
+    for (auto& npc : m_npcs) {
+        float sortY = npc.getPosition().y;
+        out.push_back({ sortY, [&npc](sf::RenderWindow& w) { npc.draw(w); } });
+    }
+}
 
+void NPCManager::drawDebugRanges(sf::RenderWindow& window) const {
     for (auto& npc : m_npcs) {
         sf::CircleShape radius(NPC::INTERACT_RANGE);
         radius.setOrigin({ NPC::INTERACT_RANGE, NPC::INTERACT_RANGE });

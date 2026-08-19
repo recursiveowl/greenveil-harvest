@@ -31,6 +31,7 @@
 #include "world/TreeSystem.h"
 #include "world/PlayerHouse.h"
 #include "world/LandmarkSystem.h"
+#include "core/RenderQueue.h"
 
 class Game {
 public:

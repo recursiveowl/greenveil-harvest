@@ -183,39 +183,44 @@ void BuildingSystem::update(float dt) {
         m_buildings.end());
 }
 
-void BuildingSystem::draw(sf::RenderWindow& window) {
-    for (auto& b : m_buildings) {
+void BuildingSystem::drawBuilding(sf::RenderWindow& window, const PlacedBuilding& b) const {
+    float ts = static_cast<float>(TileMap::TILE_SIZE);
+    float wx = b.tilePos.x * ts;
+    float wy = b.tilePos.y * ts;
+    float ww = b.size.x * ts;
+    float wh = b.size.y * ts;
+
+    // Tijelo
+    sf::RectangleShape body({ ww, wh });
+    body.setPosition({ wx, wy });
+    body.setFillColor(b.color);
+    body.setOutlineThickness(2.f);
+    body.setOutlineColor(sf::Color(
+        static_cast<uint8_t>(b.color.r * 0.6f),
+        static_cast<uint8_t>(b.color.g * 0.6f),
+        static_cast<uint8_t>(b.color.b * 0.6f)));
+    window.draw(body);
+
+    // HP bar ako je ostecena
+    if (b.hp < b.maxHp) {
+        float ratio = b.hp / b.maxHp;
+        sf::RectangleShape barBg({ ww, 4.f });
+        barBg.setPosition({ wx, wy - 6.f });
+        barBg.setFillColor(sf::Color(60, 0, 0));
+        window.draw(barBg);
+        sf::RectangleShape barFg({ ww * ratio, 4.f });
+        barFg.setPosition({ wx, wy - 6.f });
+        barFg.setFillColor(sf::Color(200, 100, 50));
+        window.draw(barFg);
+    }
+}
+
+void BuildingSystem::collectRenderItems(std::vector<RenderItem>& out) const {
+    float ts = static_cast<float>(TileMap::TILE_SIZE);
+    for (const auto& b : m_buildings) {
         if (b.destroyed) continue;
-
-        float ts = static_cast<float>(TileMap::TILE_SIZE);
-        float wx = b.tilePos.x * ts;
-        float wy = b.tilePos.y * ts;
-        float ww = b.size.x * ts;
-        float wh = b.size.y * ts;
-
-        // Tijelo
-        sf::RectangleShape body({ ww, wh });
-        body.setPosition({ wx, wy });
-        body.setFillColor(b.color);
-        body.setOutlineThickness(2.f);
-        body.setOutlineColor(sf::Color(
-            static_cast<uint8_t>(b.color.r * 0.6f),
-            static_cast<uint8_t>(b.color.g * 0.6f),
-            static_cast<uint8_t>(b.color.b * 0.6f)));
-        window.draw(body);
-
-        // HP bar ako je ostecena
-        if (b.hp < b.maxHp) {
-            float ratio = b.hp / b.maxHp;
-            sf::RectangleShape barBg({ ww, 4.f });
-            barBg.setPosition({ wx, wy - 6.f });
-            barBg.setFillColor(sf::Color(60, 0, 0));
-            window.draw(barBg);
-            sf::RectangleShape barFg({ ww * ratio, 4.f });
-            barFg.setPosition({ wx, wy - 6.f });
-            barFg.setFillColor(sf::Color(200, 100, 50));
-            window.draw(barFg);
-        }
+        float sortY = (b.tilePos.y + b.size.y) * ts; // donja ivica zgrade = "baza"
+        out.push_back({ sortY, [this, &b](sf::RenderWindow& w) { drawBuilding(w, b); } });
     }
 }
 

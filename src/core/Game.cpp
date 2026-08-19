@@ -957,13 +957,28 @@ void Game::render() {
     m_tileMap.draw(m_window);
     m_grassDecor.draw(m_window);
     m_farming.draw(m_window);
-    m_bushes.draw(m_window);
-    m_trees.draw(m_window);
-    m_building.draw(m_window);
-    m_playerHouse.draw(m_window);
-    m_landmarks.drawMarketPlaceholder(m_window);
-    m_npcManager.draw(m_window);
-    m_player.draw(m_window);
+
+    // Y-sort pass — Stardew-style depth sorting po Y anchor tacki (baza/noge)
+    std::vector<RenderItem> renderQueue;
+    m_bushes.collectRenderItems(renderQueue);
+    m_trees.collectRenderItems(renderQueue);
+    m_building.collectRenderItems(renderQueue);
+    m_npcManager.collectRenderItems(renderQueue);
+    if (m_playerHouse.hasHouse()) {
+        float houseSortY = static_cast<float>(
+            (m_playerHouse.getTilePos().y + m_playerHouse.getSize().y) * TileMap::TILE_SIZE);
+        renderQueue.push_back({ houseSortY,
+            [this](sf::RenderWindow& w) { m_playerHouse.draw(w); } });
+    }
+    renderQueue.push_back({ m_player.getPosition().y + 12.f,
+        [this](sf::RenderWindow& w) { m_player.draw(w); } });
+
+    std::sort(renderQueue.begin(), renderQueue.end(),
+        [](const RenderItem& a, const RenderItem& b) { return a.sortY < b.sortY; });
+    for (auto& item : renderQueue)
+        item.draw(m_window);
+
+    m_npcManager.drawDebugRanges(m_window);
     m_coinPickup.draw(m_window);
 
     if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {

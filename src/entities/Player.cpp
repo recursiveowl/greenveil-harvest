@@ -39,8 +39,6 @@ sf::Vector2f Player::getFacing() const {
 
 void Player::update(float dt, const TileMap& map, const BuildingSystem& buildings, const BushSystem& bushes, const TreeSystem& trees, const PlayerHouseSystem& house) {
     float speed = SPEED;
-    if (bushes.isInBush(m_sprite.getPosition()))
-        speed *= 0.45f;
     sf::Vector2f vel{ 0.f, 0.f };
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) vel.y -= speed;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) vel.y += speed;
@@ -76,8 +74,8 @@ void Player::update(float dt, const TileMap& map, const BuildingSystem& building
     sf::Vector2f tryX = { newPos.x, cur.y };
     sf::Vector2f tryY = { cur.x,    newPos.y };
 
-    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX) || house.isSolid(tryX);
-    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY) || house.isSolid(tryY);
+    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX) || bushes.isSolid(tryX);
+    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY) || bushes.isSolid(tryY);
 
     if (!blockX && !blockY)
         m_sprite.setPosition(newPos);

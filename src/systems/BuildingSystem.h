@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "systems/Inventory.h"
 #include "world/TileMap.h"
+#include "core/RenderQueue.h"
 
 // ========================= BUILDING TYPES =========================
 
@@ -78,7 +79,7 @@ public:
         const Inventory& inv, const TileMap& map) const;
 
     void update(float dt);
-    void draw(sf::RenderWindow& window);
+    void collectRenderItems(std::vector<RenderItem>& out) const;
     void drawPreview(sf::RenderWindow& window, BuildingType type,
         sf::Vector2i tilePos, bool valid);
 
@@ -86,6 +87,7 @@ public:
 
 private:
     bool overlapsExisting(sf::Vector2i tilePos, sf::Vector2i size) const;
+    void drawBuilding(sf::RenderWindow& window, const PlacedBuilding& b) const;
 
     std::vector<BuildingDef>     m_defs;
     std::vector<PlacedBuilding>  m_buildings;
