@@ -25,6 +25,7 @@ public:
     sf::Texture m_texInt;    // house_int.png (interior)
 
     bool isNearDoor(sf::Vector2f playerPos) const;
+    bool isAtDoorTrigger(sf::Vector2f playerPos) const;
     sf::Vector2f getFrontOfDoorPos() const;
 
     static constexpr float INTERIOR_SCALE = 0.6f;

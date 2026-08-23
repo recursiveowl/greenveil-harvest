@@ -44,7 +44,7 @@ void PlayerHouseSystem::spawnNear(sf::Vector2f playerPos, unsigned seed, const T
 
     m_house.tilePos = bestPos;
     m_house.placed = true;
-    (void)found; // fallback se koristi automatski ako ništa nije pronađeno
+    (void)found;
 }
 
 void PlayerHouseSystem::setTilePos(sf::Vector2i tilePos) {
@@ -59,7 +59,7 @@ bool PlayerHouseSystem::isSolid(sf::Vector2f worldPos) const {
     int ty = static_cast<int>(worldPos.y) / TileMap::TILE_SIZE;
 
     return tx >= m_house.tilePos.x && tx < m_house.tilePos.x + m_house.size.x &&
-        ty >= m_house.tilePos.y && ty < m_house.tilePos.y + m_house.size.y;
+        ty >= m_house.tilePos.y + 1 && ty < m_house.tilePos.y + m_house.size.y;
 }
 
 void PlayerHouseSystem::draw(sf::RenderWindow& window) {
@@ -93,6 +93,18 @@ sf::Vector2f PlayerHouseSystem::getFrontOfDoorPos() const {
     float doorX = (m_house.tilePos.x + m_house.size.x * 0.5f) * ts;
     float doorY = (m_house.tilePos.y + m_house.size.y) * ts + 16.f;
     return { doorX, doorY };
+}
+
+bool PlayerHouseSystem::isAtDoorTrigger(sf::Vector2f playerPos) const {
+    if (!m_house.placed) return false;
+
+    float ts = static_cast<float>(TileMap::TILE_SIZE);
+    float doorCenterX = (m_house.tilePos.x + m_house.size.x * 0.5f) * ts;
+    float doorTopY = (m_house.tilePos.y + m_house.size.y - 1) * ts; // gornja ivica prolaza (unutar footprinta)
+    float doorBottomY = (m_house.tilePos.y + m_house.size.y) * ts + 12.f; // malo ispod kuće
+
+    return playerPos.x >= doorCenterX - 16.f && playerPos.x <= doorCenterX + 16.f &&
+        playerPos.y >= doorTopY && playerPos.y <= doorBottomY;
 }
 
 static void ensureInteriorLoaded(sf::Texture& tex) {

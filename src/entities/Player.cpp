@@ -74,8 +74,8 @@ void Player::update(float dt, const TileMap& map, const BuildingSystem& building
     sf::Vector2f tryX = { newPos.x, cur.y };
     sf::Vector2f tryY = { cur.x,    newPos.y };
 
-    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX) || bushes.isSolid(tryX);
-    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY) || bushes.isSolid(tryY);
+    bool blockX = buildings.isSolid(tryX) || trees.isSolid(tryX) || bushes.isSolid(tryX) || house.isSolid(tryX);
+    bool blockY = buildings.isSolid(tryY) || trees.isSolid(tryY) || bushes.isSolid(tryY) || house.isSolid(tryY);
 
     if (!blockX && !blockY)
         m_sprite.setPosition(newPos);

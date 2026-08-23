@@ -32,6 +32,7 @@
 #include "world/PlayerHouse.h"
 #include "world/LandmarkSystem.h"
 #include "core/RenderQueue.h"
+#include "ui/LoadingScreen.h"
 
 class Game {
 public:
@@ -44,10 +45,13 @@ private:
     void render();
     void spawnVillage();
     void saveGame();
+    void autosave();
     void loadGame();
     void applyProgressionStats();
     void applyLoadedData(const SaveData& sd, int slot = 0);
     void deleteSave();
+    void beginLoading(std::vector<std::function<void()>> steps);
+    void updateLoading(float dt);
     SaveData buildSaveData();
 
     static constexpr unsigned WINDOW_W = 1280;
@@ -91,7 +95,7 @@ private:
     bool                m_gameOver{ false };
     unsigned            m_seed{ 0 };
 
-    enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing, HouseInterior };
+    enum class GameState { MainMenu, SaveSelect, SaveMenu, PauseMenu, Playing, HouseInterior, Loading };
     GameState   m_gameState{ GameState::MainMenu };
     enum class SaveMode { NewGame, Continue };
     SaveMode  m_saveMode{ SaveMode::Continue };
@@ -103,14 +107,19 @@ private:
     int m_currentSlot{ 0 };
     int m_slotBaseMinutes{ 0 };
 
+    LoadingScreen m_loadingScreen;
+    std::vector<std::function<void()>> m_loadSteps;
+    size_t   m_loadStepIndex{ 0 };
+    SaveData m_pendingLoadData{};
+
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||
             m_npcManager.isDialogueOpen();
     }
 
     sf::Vector2f m_returnPos{ 0.f, 0.f };
-
-
+    
+    bool m_wasAtDoorTrigger{ false };
     bool m_fKeyHeld{ false };
     bool m_eKeyHeld{ false };
     bool m_rKeyHeld{ false };

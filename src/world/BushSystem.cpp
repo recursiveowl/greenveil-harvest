@@ -6,6 +6,7 @@ void BushSystem::generate(const TileMap& map, unsigned seed, const std::unordere
         return;
 
     m_bushes.clear();
+    m_bushSet.clear();
     std::mt19937 rng(seed + 999);
     std::uniform_real_distribution<float> spawnChance(0.f, 1.f);
     constexpr float BASE_CHANCE = 1.f / 180.f;
