@@ -7,8 +7,6 @@ HUD::HUD() {
     (void)m_font.openFromFile("assets/fonts/DejaVuSans.ttf");
     (void)m_goldTex.loadFromFile("assets/textures/gold_coins.png");
     (void)m_silverTex.loadFromFile("assets/textures/silver_coins.png");
-    (void)m_heartTex.loadFromFile("assets/textures/heart.png");
-    (void)m_healthBarTex.loadFromFile("assets/textures/healthbar.png");
     m_healthBarTex.setSmooth(false);
     m_heartTex.setSmooth(false);
     m_goldTex.setSmooth(false);
@@ -31,21 +29,6 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
     float barH = Y(22.f);
     float x = X(16.f);
     float y = Y(16.f);
-    float ratio = std::max(0.f, hp / maxHp);
-
-    sf::Sprite hpBar(m_healthBarTex);
-    float fullWidth = static_cast<float>(m_healthBarTex.getSize().x);
-    float fullHeight = static_cast<float>(m_healthBarTex.getSize().y);
-    float targetW = 275.f;
-    float targetH = 58.f;
-    hpBar.setScale({ targetW / fullWidth, targetH / fullHeight });
-    hpBar.setPosition({ x, y });
-    window.draw(hpBar);
-
-    sf::RectangleShape fill({ (targetW - 44.f) * ratio, targetH - 22.f });
-    fill.setPosition({ x + 19.f, y + 11.f });
-    fill.setFillColor(sf::Color(40, 160, 40));
-    window.draw(fill);
 
     int  hour = static_cast<int>(gameHour) % 24;
     int  minute = static_cast<int>((gameHour - std::floor(gameHour)) * 60.f);
