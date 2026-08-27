@@ -91,17 +91,4 @@ void HUD::draw(sf::RenderWindow& window, float hp, float maxHp,
         emText.setPosition({ x + X(130.f), wy + Y(1.f) });
         window.draw(emText);
     }
-
-    // Srca
-    float heartSize = 15.f * s * 3.f;
-    float hx = ws.x - Player::MAX_LIVES * (heartSize + X(4.f)) - X(16.f);
-    float hy = Y(16.f);
-    for (int i = 0; i < Player::MAX_LIVES; ++i) {
-        sf::Sprite heart(m_heartTex);
-        bool full = (i < currentLives);
-        heart.setTextureRect(sf::IntRect({ 0, full ? 0 : 16 }, { 15, 16 }));
-        heart.setScale({ s * 3.f, s * 3.f });
-        heart.setPosition({ hx + i * (heartSize + X(4.f)), hy });
-        window.draw(heart);
-    }
 }
