@@ -63,6 +63,7 @@ Game::Game()
     m_trees.generate(m_tileMap, m_seed, treeBlocked);
 
     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+    m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks);
     m_camera.snapTo(m_player.getPosition());
 
 #ifdef _WIN32
@@ -156,6 +157,10 @@ void Game::applyLoadedData(const SaveData& sd, int slot) {
 
     spawnVillage();
     SaveSystem::loadTiles(slot, m_tileMap);
+
+    if (m_inventory.countOf(ItemType::Map) == 0)
+        m_inventory.addItem(ItemType::Map, 1);
+
     m_camera.snapTo(m_player.getPosition());
 }
 
@@ -249,6 +254,7 @@ void Game::processEvents() {
                         m_seed = static_cast<unsigned>(std::time(nullptr));
                         m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                         m_inventory = Inventory{};
+                        m_inventory.addItem(ItemType::Map, 1);
                         m_farming = FarmingSystem{};
                         m_npcManager = NPCManager{};
                         m_interactTiles = InteractTileManager{};
@@ -285,6 +291,7 @@ void Game::processEvents() {
                         m_trees.generate(m_tileMap, m_seed, treeBlocked);
                     },
                     [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); },
+                    [this] { m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks); },
                     [this] { spawnVillage(); },
                                         [this] { m_camera.snapTo(m_player.getPosition()); }
                     });
@@ -329,7 +336,8 @@ void Game::processEvents() {
                             treeBlocked.insert(houseSet.begin(), houseSet.end());
                             m_trees.generate(m_tileMap, m_seed, treeBlocked);
                         },
-                        [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); }
+                        [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); },
+                        [this] { m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks); }
                         });
                 }
                 else {
@@ -338,6 +346,7 @@ void Game::processEvents() {
                             m_seed = static_cast<unsigned>(std::time(nullptr));
                             m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                             m_inventory = Inventory{};
+                            m_inventory.addItem(ItemType::Map, 1);
                             m_farming = FarmingSystem{};
                             m_npcManager = NPCManager{};
                             m_interactTiles = InteractTileManager{};
@@ -373,6 +382,7 @@ void Game::processEvents() {
                             m_trees.generate(m_tileMap, m_seed, treeBlocked);
                         },
                         [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); },
+                        [this] { m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks); },
                         [this] { spawnVillage(); },
                         [this] { m_camera.snapTo(m_player.getPosition()); }
                         });
@@ -425,8 +435,11 @@ void Game::processEvents() {
                     m_trees.generate(m_tileMap, m_seed, treeBlocked4);
 
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks);
+
                     m_wallet = Wallet{}; m_wallet.gold = 2; m_wallet.silver = 50;
                     m_inventory = Inventory{};
+                    m_inventory.addItem(ItemType::Map, 1);
                     spawnVillage();
                     m_gameState = GameState::Playing;
                     };
@@ -459,6 +472,7 @@ void Game::processEvents() {
                     m_trees.generate(m_tileMap, m_seed, treeBlocked5);
 
                     m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet());
+                    m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks);
                     m_gameState = GameState::Playing;
                     };
                 auto doDelete = [&](int slot) {
@@ -557,6 +571,7 @@ void Game::processEvents() {
                     break;
                 }
                 if (m_interactPrompt.isVisible()) { m_interactPrompt.hide(); break; }
+                if (m_mapUI.isOpen()) { m_mapUI.close(); break; }
                 if (m_npcManager.isDialogueOpen()) { m_npcManager.closeDialogue(); break; }
                 if (m_buildingUI.isOpen()) { m_buildingUI.close(); break; }
                 if (m_buildingUI.hasSelected()) { m_buildingUI.clearSelected(); break; }
@@ -771,7 +786,8 @@ void Game::processEvents() {
                             treeBlocked.insert(houseSet.begin(), houseSet.end());
                             m_trees.generate(m_tileMap, m_seed, treeBlocked);
                         },
-                        [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); }
+                        [this] { m_grassDecor.generate(m_tileMap, m_seed, m_trees.getTileSet()); },
+                        [this] { m_mapSystem.bake(m_tileMap, m_trees, m_bushes, m_landmarks); }
                         });
                     };
 
@@ -804,6 +820,18 @@ void Game::processEvents() {
                 int skill = m_skillUI.handleClick(mpos, m_progression);
                 if (skill >= 0)
                     m_progression.upgradeSkill(static_cast<SkillType>(skill));
+                break;
+            }
+
+            if (m_mapUI.isOpen()) {
+                if (click->button == sf::Mouse::Button::Right)
+                    m_mapUI.close();
+                break;
+            }
+
+            if (click->button == sf::Mouse::Button::Right &&
+                m_inventory.selectedItem() == ItemType::Map) {
+                m_mapUI.toggle();
                 break;
             }
 
@@ -1098,6 +1126,13 @@ void Game::render() {
     if (m_gameState == GameState::SaveMenu) {
         m_camera.applyUI(m_window);
         m_saveUI.draw(m_window, m_slotPreviews);
+    }
+
+    if (m_mapUI.isOpen()) {
+        m_camera.applyUI(m_window);
+        sf::Vector2i mp = sf::Mouse::getPosition(m_window);
+        m_mapUI.draw(m_window, m_mapSystem, m_player.getPosition(),
+            sf::Vector2f{ static_cast<float>(mp.x), static_cast<float>(mp.y) });
     }
 
     if (m_gameState == GameState::PauseMenu)

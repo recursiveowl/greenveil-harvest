@@ -33,6 +33,8 @@
 #include "world/LandmarkSystem.h"
 #include "core/RenderQueue.h"
 #include "ui/LoadingScreen.h"
+#include "world/MapSystem.h"
+#include "ui/MapUI.h"
 
 class Game {
 public:
@@ -89,6 +91,8 @@ private:
     TreeSystem          m_trees;
     PlayerHouseSystem   m_playerHouse;
     LandmarkSystem      m_landmarks;
+    MapSystem            m_mapSystem;
+    MapUI                m_mapUI;
 
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };

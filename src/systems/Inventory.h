@@ -16,7 +16,8 @@ enum class ItemType : uint8_t {
     Trout,
     Salmon,
     Catfish,
-    GoldenFish
+    GoldenFish,
+    Map
 };
 
 struct Item {
@@ -69,12 +70,15 @@ private:
     void drawSlot(sf::RenderWindow& w, sf::FloatRect r,
         const Item& item, bool selected,
         bool highlighted, bool isDragSource);
+    void drawFittedIcon(sf::RenderWindow& w, const sf::Texture& tex,
+        sf::Vector2f center, float boxSize) const;
 
     bool         m_backpackOpen{ false };
     sf::Font     m_font;
     bool         m_dragging{ false };
     int          m_dragSrcIdx{ -1 };
     sf::Vector2f m_dragPos;
+    sf::Texture  m_mapTex;
     Item         m_dragItem;
 
     mutable float        m_bpPx{ 0.f }, m_bpPy{ 0.f };

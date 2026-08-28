@@ -59,6 +59,8 @@ std::string Inventory::itemDesc(ItemType t) {
 // -------------------------------------------------------
 Inventory::Inventory() {
     (void)m_font.openFromFile("assets/fonts/DejaVuSans.ttf");
+    (void)m_mapTex.loadFromFile("assets/textures/map.png");
+    m_mapTex.setSmooth(true);
     slots[0] = { ItemType::Seed, 5 };
     slots[1] = { ItemType::Hoe, 1 };
 }
@@ -212,6 +214,20 @@ void Inventory::draw(sf::RenderWindow& window) {
 // -------------------------------------------------------
 //  Draw single slot
 // -------------------------------------------------------
+
+void Inventory::drawFittedIcon(sf::RenderWindow& w, const sf::Texture& tex,
+    sf::Vector2f center, float boxSize) const {
+    sf::Vector2u texSize = tex.getSize();
+    if (texSize.x == 0 || texSize.y == 0) return;
+    float scale = std::min(boxSize / static_cast<float>(texSize.x),
+        boxSize / static_cast<float>(texSize.y));
+    sf::Sprite sprite(tex);
+    sprite.setOrigin({ texSize.x * 0.5f, texSize.y * 0.5f });
+    sprite.setScale({ scale, scale });
+    sprite.setPosition(center);
+    w.draw(sprite);
+}
+
 void Inventory::drawSlot(sf::RenderWindow& w, sf::FloatRect r,
     const Item& item, bool selected,
     bool highlighted, bool isDragSource) {
@@ -240,6 +256,15 @@ void Inventory::drawSlot(sf::RenderWindow& w, sf::FloatRect r,
     w.draw(bg);
 
     if (item.type == ItemType::None || isDragSource) return;
+
+    if (item.type == ItemType::Map && m_mapTex.getSize().x > 0) {
+        constexpr float ICON_PAD = 2.f;
+        float boxSize = std::min(r.size.x, r.size.y) - ICON_PAD * 2.f;
+        sf::Vector2f center{ r.position.x + r.size.x * 0.5f,
+                              r.position.y + r.size.y * 0.5f };
+        drawFittedIcon(w, m_mapTex, center, boxSize);
+        return;
+    }
 
     // Ikona — uvijek kvadrat (min od w/h), centrirano u slotu
     float iconPad = 7.f;
@@ -313,12 +338,21 @@ void Inventory::drawHotbar(sf::RenderWindow& w) {
             float cubeX = r.position.x + (r.size.x - cubeSize) * 0.5f;
             float cubeY = r.position.y + (r.size.y - cubeSize) * 0.5f;
 
-            sf::RectangleShape cube(sf::Vector2f{ cubeSize, cubeSize });
-            cube.setPosition({ cubeX, cubeY });
-            cube.setFillColor(itemColor(slots[i].type));
-            cube.setOutlineThickness(1.f);
-            cube.setOutlineColor(sf::Color(0, 0, 0, 80));
-            w.draw(cube);
+            if (slots[i].type == ItemType::Map && m_mapTex.getSize().x > 0) {
+                constexpr float ICON_PAD = 2.f;
+                float boxSize = std::min(r.size.x, r.size.y) - ICON_PAD * 2.f;
+                sf::Vector2f center{ r.position.x + r.size.x * 0.5f,
+                                      r.position.y + r.size.y * 0.5f };
+                drawFittedIcon(w, m_mapTex, center, boxSize);
+            }
+            else {
+                sf::RectangleShape cube(sf::Vector2f{ cubeSize, cubeSize });
+                cube.setPosition({ cubeX, cubeY });
+                cube.setFillColor(itemColor(slots[i].type));
+                cube.setOutlineThickness(1.f);
+                cube.setOutlineColor(sf::Color(0, 0, 0, 80));
+                w.draw(cube);
+            }
 
             // Count samo ako > 1
             if (slots[i].count > 1) {
@@ -460,14 +494,21 @@ void Inventory::drawDragItem(sf::RenderWindow& w) {
     w.draw(ghost);
 
     // Item ikona
-    float iconPad = 8.f;
-    sf::RectangleShape icon({ SLOT_SIZE - iconPad * 2.f, SLOT_SIZE - iconPad * 2.f - 12.f });
-    icon.setOrigin({ (SLOT_SIZE - iconPad * 2.f) * 0.5f, (SLOT_SIZE - iconPad * 2.f - 12.f) * 0.5f });
-    icon.setPosition(m_dragPos);
-    icon.setFillColor(itemColor(m_dragItem.type));
-    icon.setOutlineThickness(1.5f);
-    icon.setOutlineColor(sf::Color(255, 255, 255, 60));
-    w.draw(icon);
+    if (m_dragItem.type == ItemType::Map && m_mapTex.getSize().x > 0) {
+        constexpr float ICON_PAD = 3.f;
+        float boxSize = SLOT_SIZE - ICON_PAD * 2.f;
+        drawFittedIcon(w, m_mapTex, m_dragPos, boxSize);
+    }
+    else {
+        float iconPad = 8.f;
+        sf::RectangleShape icon({ SLOT_SIZE - iconPad * 2.f, SLOT_SIZE - iconPad * 2.f - 12.f });
+        icon.setOrigin({ (SLOT_SIZE - iconPad * 2.f) * 0.5f, (SLOT_SIZE - iconPad * 2.f - 12.f) * 0.5f });
+        icon.setPosition(m_dragPos);
+        icon.setFillColor(itemColor(m_dragItem.type));
+        icon.setOutlineThickness(1.5f);
+        icon.setOutlineColor(sf::Color(255, 255, 255, 60));
+        w.draw(icon);
+    }
 
     // Count
     if (m_dragItem.count > 1) {
