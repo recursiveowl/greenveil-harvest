@@ -202,6 +202,7 @@ void Game::spawnVillage() {
     m_coinPickup.spawnCoins(base, 25, m_seed, m_tileMap);
     m_interactTiles.add({ InteractTileType::Sign, {129, 128},
         "Village Entrance", "Welcome to Greenveil.", false, false });
+    m_well.place(m_landmarks.getMarketPos(), m_landmarks.getMarketSize());
 
     for (const auto& slot : m_landmarks.getSlots()) {
         if (slot.role != LandmarkRole::ForSale) continue;
@@ -634,6 +635,12 @@ void Game::processEvents() {
                     m_fishing.onActionPressed(m_player.getPosition(), m_player.getFacing());
                     break;
                 }
+                if (m_inventory.selectedItem() == ItemType::WateringCan) {
+                    Item& can = m_inventory.slots[m_inventory.selectedSlot];
+                    if (can.count > 0 && m_farming.tryWater(m_player.getPosition(), m_tileMap))
+                        can.count -= 1;
+                    break;
+                }
                 if (!m_npcManager.tryInteract(m_player.getPosition(), m_gameHour)) {
                     if (m_inventory.countOf(ItemType::Seed) > 0)
                         if (m_farming.tryPlant(m_player.getPosition(), m_tileMap))
@@ -644,10 +651,10 @@ void Game::processEvents() {
             case sf::Keyboard::Key::E:
                 if (m_eKeyHeld) break;
                 m_eKeyHeld = true;
-                if (!m_npcManager.isDialogueOpen())  
+                if (!m_npcManager.isDialogueOpen() && !m_wellFillContext())
                     m_farming.tryTill(
-                    m_player.getPosition(), m_tileMap,
-                    m_inventory.selectedItem() == ItemType::Hoe);
+                        m_player.getPosition(), m_tileMap,
+                        m_inventory.selectedItem() == ItemType::Hoe);
                 break;
 
             case sf::Keyboard::Key::R:
@@ -655,11 +662,12 @@ void Game::processEvents() {
                 m_rKeyHeld = true;
                 if (!m_npcManager.isDialogueOpen()) {
                     int seeds = 0;
+                    ItemType harvestType = ItemType::None;
                     if (m_farming.tryHarvest(
-                        m_player.getPosition(), m_tileMap, seeds)) {
+                        m_player.getPosition(), m_tileMap, seeds, harvestType)) {
                         int bonus = static_cast<int>(m_progression.getFarmYield());
-                        if (seeds + bonus > 0)
-                            m_inventory.addItem(ItemType::Crop, seeds + bonus);
+                        if (seeds + bonus > 0 && harvestType != ItemType::None)
+                            m_inventory.addItem(harvestType, seeds + bonus);
                     }
                 }
                 break;
@@ -934,9 +942,13 @@ void Game::update(float dt) {
     float hourSpeed = isNightTime ? GAME_HOUR_SPEED_NIGHT : GAME_HOUR_SPEED_DAY;
     m_gameHour += hourSpeed * dt;
 
+    bool crossedDawn = (m_prevHour < 6.f && m_gameHour >= 6.f);
+
     if (m_gameHour >= 24.f) {
         m_gameHour -= 24.f;
     }
+
+    if (crossedDawn) m_farming.advanceDay();
 
     auto ws = m_window.getSize();
     if (ws.x != m_windowW || ws.y != m_windowH) {
@@ -968,6 +980,23 @@ void Game::update(float dt) {
         WeaponType wt = WeaponType::Bare;
         if (held == ItemType::FishingRod) wt = WeaponType::Rod;
         m_player.setWeaponType(wt);
+    }
+
+    if (!m_npcManager.isDialogueOpen()) {
+        bool fillHeld = m_wellFillContext() &&
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E);
+
+        if (fillHeld) {
+            m_wellFillTimer = std::min(m_wellFillTimer + dt, 1.f);
+        }
+        else if (m_wellFillTimer > 0.f) {
+            Item& can = m_inventory.slots[m_inventory.selectedSlot];
+            if (can.type == ItemType::WateringCan) {
+                int add = static_cast<int>(std::round(10.f * m_wellFillTimer));
+                can.count = std::min(10, can.count + add);
+            }
+            m_wellFillTimer = 0.f;
+        }
     }
 
     m_camera.follow(m_player.getPosition(), dt);
@@ -1075,6 +1104,7 @@ void Game::render() {
 
     m_npcManager.drawDebugRanges(m_window);
     m_coinPickup.draw(m_window);
+    m_well.draw(m_window);
 
     if (m_buildingUI.hasSelected() && !m_buildingUI.isOpen()) {
         sf::Vector2f mouseWorld = m_window.mapPixelToCoords(

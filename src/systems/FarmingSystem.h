@@ -1,21 +1,30 @@
-#pragma once
+Ôªø#pragma once
 #include "pch.h"
 #include "world/TileMap.h"
+#include "Inventory.h"
 
 enum class CropStage : uint8_t {
     Seed = 0,
     Sprout,
     Grown,
     Ready,
-    Withered, // uvenulo ó daleko od vode
     COUNT
+};
+
+enum class CropQuality : uint8_t {
+    Rotten,
+    Poor,
+    Good,
+    Perfect
 };
 
 struct Crop {
     int       tileX{0}, tileY{0};
     CropStage stage{CropStage::Seed};
-    float     growTimer{0.f};
-    float     growTime{3.f}; // 3 sekunde po fazi (brûe!)
+    CropQuality quality{ CropQuality::Good };
+    int       daysGr–æwn{0};
+    int       missedDays{ 0 };
+    bool wateredToday{false};
     bool      fertile{false};
 };
 
@@ -28,9 +37,11 @@ struct FarmTile {
 class FarmingSystem {
 public:
     void update(float dt, const TileMap& map);
+    void advanceDay();
+    bool tryWater(sf::Vector2f playerPos, const TileMap& map);
     bool tryTill(sf::Vector2f playerPos, TileMap& map, bool hasHoe);
     bool tryPlant(sf::Vector2f playerPos, TileMap& map);
-    bool tryHarvest(sf::Vector2f playerPos, TileMap& map, int& seedsOut);
+    bool tryHarvest(sf::Vector2f playerPos, TileMap& map, int& seedsOut, ItemType& itemTypeOut);
     void draw(sf::RenderWindow& window);
 
 private:

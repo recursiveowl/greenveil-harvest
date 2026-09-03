@@ -13,6 +13,7 @@ sf::Color Inventory::itemColor(ItemType t) {
     case ItemType::Stone:      return sf::Color(150, 150, 160);
     case ItemType::FishingRod: return sf::Color(80, 160, 220);
     case ItemType::Hoe:        return sf::Color(180, 170, 210);
+    case ItemType::WateringCan:return sf::Color(90, 170, 210);
     case ItemType::Carp:       return sf::Color(80, 160, 100);
     case ItemType::Trout:      return sf::Color(60, 120, 200);
     case ItemType::Salmon:     return sf::Color(220, 100, 80);
@@ -25,10 +26,12 @@ std::string Inventory::itemName(ItemType t) {
     switch (t) {
     case ItemType::Seed:       return "Seed";
     case ItemType::Crop:       return "Crop";
+    case ItemType::CropPoor:   return "Poor Crop";
     case ItemType::Wood:       return "Wood";
     case ItemType::Stone:      return "Stone";
     case ItemType::FishingRod: return "Fishing Rod";
     case ItemType::Hoe:        return "Hoe";
+    case ItemType::WateringCan:return "Watering Can";
     case ItemType::Carp:       return "Carp";
     case ItemType::Trout:      return "Trout";
     case ItemType::Salmon:     return "Salmon";
@@ -45,6 +48,8 @@ std::string Inventory::itemDesc(ItemType t) {
     case ItemType::Stone:      return "Construction material.";
     case ItemType::FishingRod: return "Equip to fish near water.";
     case ItemType::Hoe:        return "Equip to dig to till soil.";
+    case ItemType::WateringCan:return "Equip and fill at the well to water crops.";
+    case ItemType::CropPoor:   return "Poorly grown produce. Sells for less.";
     case ItemType::Carp:       return "A common river fish.";
     case ItemType::Trout:      return "A fast mountain fish.";
     case ItemType::Salmon:     return "A valuable pink fish.";
@@ -63,6 +68,8 @@ Inventory::Inventory() {
     m_mapTex.setSmooth(true);
     slots[0] = { ItemType::Seed, 5 };
     slots[1] = { ItemType::Hoe, 1 };
+    slots[2] = { ItemType::Map };
+    slots[3] = { ItemType::WateringCan, 0 };
 }
 
 // -------------------------------------------------------
@@ -280,7 +287,7 @@ void Inventory::drawSlot(sf::RenderWindow& w, sf::FloatRect r,
     w.draw(icon);
 
     // Count — donji desni ugao (bez naziva)
-    if (item.count > 1) {
+    if (item.count > 1 || item.type == ItemType::WateringCan) {
         sf::Text countT(m_font, std::to_string(item.count), 11);
         countT.setFillColor(sf::Color::White);
         auto cb = countT.getLocalBounds();
@@ -354,8 +361,8 @@ void Inventory::drawHotbar(sf::RenderWindow& w) {
                 w.draw(cube);
             }
 
-            // Count samo ako > 1
-            if (slots[i].count > 1) {
+            // Count samo ako > 1 (WateringCan uvijek prikazuje nivo vode)
+            if (slots[i].count > 1 || slots[i].type == ItemType::WateringCan) {
                 sf::Text countT(m_font, std::to_string(slots[i].count), 10);
                 countT.setFillColor(sf::Color::White);
                 auto cb = countT.getLocalBounds();

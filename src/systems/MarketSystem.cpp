@@ -45,6 +45,10 @@ MarketSystem::MarketSystem()
         ItemType::Stone, "Stone", "Construction material.",
         18, 11, 0.12f, true, true,
         sf::Color(160, 160, 160)));
+    m_entries.push_back(make(
+        ItemType::CropPoor, "Poor Crop", "Poorly grown produce.",
+        1, 4, 0.15f, false, true,
+        sf::Color(150, 130, 40)));
 
     // ---- Equipment ----
     m_entries.push_back(make(

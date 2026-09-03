@@ -1,13 +1,13 @@
-#include "systems/FarmingSystem.h"
+Ôªø#include "systems/FarmingSystem.h"
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 
 const sf::Color FarmingSystem::STAGE_COLORS[] = {
     sf::Color(180, 140,  60),  // Seed
     sf::Color( 80, 200,  80),  // Sprout
     sf::Color( 30, 150,  30),  // Grown
     sf::Color(240, 200,   0),  // Ready
-    sf::Color(100,  80,  40),  // Withered
 };
 
 static sf::Vector2f tileCenter(int x, int y) {
@@ -17,26 +17,7 @@ static sf::Vector2f tileCenter(int x, int y) {
     };
 }
 
-void FarmingSystem::update(float dt, const TileMap& map) {
-    for (auto& crop : m_crops) {
-        if (crop.stage == CropStage::Ready ||
-            crop.stage == CropStage::Withered) continue;
-
-        // Provjeri da li je tile joö uvijek blizu vode
-        const Tile& t = map.getTile(crop.tileX, crop.tileY);
-        if (!t.fertile && crop.stage != CropStage::Seed) {
-            crop.stage = CropStage::Withered;
-            continue;
-        }
-
-        crop.growTimer += dt;
-        if (crop.growTimer >= crop.growTime) {
-            crop.growTimer = 0.f;
-            crop.stage = static_cast<CropStage>(
-                static_cast<int>(crop.stage) + 1);
-        }
-    }
-}
+void FarmingSystem::update(float dt, const TileMap& map) {}
 
 bool FarmingSystem::tryTill(sf::Vector2f playerPos, TileMap& map, bool hasHoe) {
 
@@ -75,8 +56,6 @@ bool FarmingSystem::tryPlant(sf::Vector2f playerPos, TileMap& map) {
     crop.tileX   = tileX;
     crop.tileY   = tileY;
     crop.fertile = map.getTile(tileX, tileY).fertile;
-    // Plodna zemlja raste 2x brûe
-    crop.growTime = crop.fertile ? 2.f : 3.f;
 
     m_crops.push_back(crop);
     it->second.hasCrop = true;
@@ -84,10 +63,53 @@ bool FarmingSystem::tryPlant(sf::Vector2f playerPos, TileMap& map) {
     return true;
 }
 
-bool FarmingSystem::tryHarvest(sf::Vector2f playerPos, TileMap& map, int& seedsOut) {
+bool FarmingSystem::tryWater(sf::Vector2f playerPos, const TileMap& map) {
     int tileX = static_cast<int>(playerPos.x) / TileMap::TILE_SIZE;
     int tileY = static_cast<int>(playerPos.y) / TileMap::TILE_SIZE;
-    int k     = key(tileX, tileY, map.getWidth());
+    int k = key(tileX, tileY, map.getWidth());
+
+    auto it = m_farmTiles.find(k);
+    if (it == m_farmTiles.end()) return false;
+    if (!it->second.hasCrop) return false;
+
+    Crop& crop = m_crops[it->second.cropIdx];
+
+    if (crop.stage == CropStage::Ready) return false;
+    if (crop.wateredToday) return false;
+
+    crop.wateredToday = true;
+    return true;
+}
+
+void FarmingSystem::advanceDay() {
+    for (auto& crop : m_crops) {
+        if (crop.stage == CropStage::Ready) continue;
+
+        if (!crop.wateredToday) crop.missedDays++;
+        crop.wateredToday = false;
+        crop.daysGr–æwn++;
+
+        int growTarget = crop.fertile ? 2 : 3;
+
+        if (crop.daysGr–æwn >= growTarget) {
+            crop.stage = CropStage::Ready;
+            float ratio = static_cast<float>(crop.missedDays) / growTarget;
+            if (ratio <= 0.f)          crop.quality = CropQuality::Perfect;
+            else if (ratio <= 1.f / 3.f) crop.quality = CropQuality::Good;
+            else if (ratio <= 2.f / 3.f) crop.quality = CropQuality::Poor;
+            else                       crop.quality = CropQuality::Rotten;
+        }
+        else {
+            crop.stage = static_cast<CropStage>(std::min(crop.daysGr–æwn, 2));
+        }
+    }
+}
+
+bool FarmingSystem::tryHarvest(sf::Vector2f playerPos, TileMap& map,
+    int& seedsOut, ItemType& itemTypeOut) {
+    int tileX = static_cast<int>(playerPos.x) / TileMap::TILE_SIZE;
+    int tileY = static_cast<int>(playerPos.y) / TileMap::TILE_SIZE;
+    int k = key(tileX, tileY, map.getWidth());
 
     auto it = m_farmTiles.find(k);
     if (it == m_farmTiles.end()) return false;
@@ -95,25 +117,30 @@ bool FarmingSystem::tryHarvest(sf::Vector2f playerPos, TileMap& map, int& seedsO
 
     Crop& crop = m_crops[it->second.cropIdx];
 
-    // Uvenulo ó moûeö ukloniti ali nema nagrade
-    if (crop.stage == CropStage::Withered) {
+    if (crop.stage != CropStage::Ready) return false;
+
+    // Rotten ‚Äî ukloni, ali nema nagrade
+    if (crop.quality == CropQuality::Rotten) {
         it->second.hasCrop = false;
-        it->second.tilled  = false;
+        it->second.tilled = false;
         it->second.cropIdx = -1;
         crop = {};
         seedsOut = 0;
+        itemTypeOut = ItemType::None;
         return true;
     }
 
-    if (crop.stage != CropStage::Ready) return false;
-
-    // Plodna zemlja daje viöe
+    // Plodna zemlja daje vi≈°e
     seedsOut = crop.fertile
         ? 3 + std::rand() % 3   // 3-5
         : 2 + std::rand() % 2;  // 2-3
 
+    itemTypeOut = (crop.quality == CropQuality::Poor)
+        ? ItemType::CropPoor
+        : ItemType::Crop;
+
     it->second.hasCrop = false;
-    it->second.tilled  = false;
+    it->second.tilled = false;
     it->second.cropIdx = -1;
     crop = {};
     return true;
@@ -123,7 +150,7 @@ void FarmingSystem::draw(sf::RenderWindow& window) {
     for (auto& crop : m_crops) {
         if (crop.tileX == 0 && crop.tileY == 0 &&
             crop.stage == CropStage::Seed &&
-            crop.growTimer == 0.f) continue;
+            crop.daysGr–æwn == 0.f) continue;
 
         sf::CircleShape circle(9.f);
         circle.setFillColor(STAGE_COLORS[static_cast<int>(crop.stage)]);

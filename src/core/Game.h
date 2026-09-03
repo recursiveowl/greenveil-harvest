@@ -35,6 +35,7 @@
 #include "ui/LoadingScreen.h"
 #include "world/MapSystem.h"
 #include "ui/MapUI.h"
+#include "world/WellSystem.h"
 
 class Game {
 public:
@@ -91,11 +92,13 @@ private:
     TreeSystem          m_trees;
     PlayerHouseSystem   m_playerHouse;
     LandmarkSystem      m_landmarks;
-    MapSystem            m_mapSystem;
-    MapUI                m_mapUI;
+    MapSystem           m_mapSystem;
+    MapUI               m_mapUI;
+    WellSystem          m_well;
 
     float               m_gameHour{ 8.f };
     float               m_prevHour{ 8.f };
+    float               m_wellFillTimer{ 0.f };
     bool                m_gameOver{ false };
     unsigned            m_seed{ 0 };
 
@@ -119,6 +122,11 @@ private:
     bool m_anyUIOpen() const {
         return m_interactPrompt.isVisible() ||
             m_npcManager.isDialogueOpen();
+    }
+
+    bool m_wellFillContext() const {
+        return m_well.isNear(m_player.getPosition()) &&
+            m_inventory.selectedItem() == ItemType::WateringCan;
     }
 
     sf::Vector2f m_returnPos{ 0.f, 0.f };

@@ -17,7 +17,10 @@ enum class ItemType : uint8_t {
     Salmon,
     Catfish,
     GoldenFish,
-    Map
+    Map,
+    // Watering system
+    WateringCan,
+    CropPoor
 };
 
 struct Item {
