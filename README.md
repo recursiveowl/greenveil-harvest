@@ -85,16 +85,6 @@ We don't expect everything to be perfect. There is room for experimentation, imp
 
 The original development was started by Greenveil Studios, but its future can be shaped by everyone who chooses to participate.
 
-🏡 About Greenveil Studios
-
-Greenveil Studios is an independent game development studio focused on creating enjoyable, memorable experiences.
-
-Greenveil Harvest is one of our projects, and making it open source is our way of inviting the community to participate in its future.
-
-- Website: "Greenveil Studios" (https://greenveilstudios-com.vercel.app/)
-- YouTube: "@GreenveilStudios" (https://www.youtube.com/@GreenveilStudios)
-- Contact: greenveilstudio@gmail.com
-
 ---
 
 🌱 A Final Note
